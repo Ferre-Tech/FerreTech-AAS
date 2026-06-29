@@ -20,7 +20,7 @@ vrcPort = 9001
 
 #Enable to see error output on some functions
 debug = False
-line_limit = 15
+line_limit = 25
 version = "2.0.0"
 filepath = ""
 
@@ -47,6 +47,8 @@ def stroking(arousal, change) -> float:
     if change != 0 and arousal < 2: #increase the amount if the change is greater
         if change == 2:
             arousal += 0.025
+        elif change == 3:
+            arousal += 0.005
         else:
             arousal += 0.02
     elif arousal > 2:
@@ -255,7 +257,7 @@ def list_configs(configs) -> None:
         print(f"{i}) {item['name']}")
         i += 1
     
-#Configuration for each specific set of bits. TODO: Make a config file that is read and holds this data. Possbly store in JSON format
+#Configuration for each specific set of bits.
 def config_bits(bits_select, config) -> object:
     
     if debug is True:
@@ -298,6 +300,7 @@ def config_bits(bits_select, config) -> object:
 
     new_bits.bit = bits_select.bit
     new_bits.active = bits_select.active
+    new_bits.changed = False
 
     bits_select.clear_mapping()
     bits_select = None
@@ -314,7 +317,7 @@ class Bits:
         self.__arousal_messages = arousal_messages
         self.__message_preamble = message_preamble
         self.last_pos = 0.0
-        self.__balls_touched = 0.0
+        self.touch_last_pos = 0.0
         self.active = False
         self.__start_val = split_param_start
         self.arousal = 0.0
@@ -328,6 +331,7 @@ class Bits:
         self._client = udp_client.SimpleUDPClient(vrcIp, vrcPort)
         self.change = 0
         self.changed = False
+        self.touch_depth_changed = False
         self.is_close = False
         self.__ui_lines = 0
 
@@ -345,12 +349,15 @@ class Bits:
     
     #Checks for the close bool from OSCGB
     def is_close_callback(self, address: str, is_close) -> None:
-        #print(f"Close: {is_close}")
+        #Callback fnction doesn't actually complete unless a function is called. Printing a blank to the end of the current line allows this to continue
+        print(end="")
         self.is_close = bool(is_close)
     
     #Grabs the OSC float value of the reciever for depth
-    def velocity_callback(self, address: str, *args: List[Any]) -> None:
-        current_pos = round(args[0], 3) #Round to 3 decimal places to avoid messy numbers
+    def velocity_callback(self, address: str, depth) -> None:
+        #Callback fnction doesn't actually complete unless a function is called. Printing a blank to the end of the current line allows this to continue
+        print(end="")
+        current_pos = round(depth, 3) #Round to 3 decimal places to avoid messy numbers
         self.change = depth_changed(current_pos, self.last_pos)
         self.last_pos = current_pos
 
@@ -365,7 +372,13 @@ class Bits:
 
     #Touch zone callback
     def jangledJewels_callback(self, address: str, x) -> None:
-        self.__balls_touched = x
+        #Callback fnction doesn't actually complete unless a function is called. Printing a blank to the end of the current line allows this to continue
+        print(end="")
+        current_pos = x
+        if depth_changed(current_pos, self.touch_last_pos) > 0:
+            self.touch_depth_changed = True
+        self.touch_last_pos = x
+
     
     #Bit config select callback
     def bit_select_callback(self, address: str, x) -> None:
@@ -525,11 +538,16 @@ async def arousalloop(dispatcher):
         
     #Make a new object with specific configs.
     vr_bits = config_bits(vr_bits, loaded_configs[vr_bits.bit])
+
+    #HERE FOR DEBUG ONLY
+    vr_bits.is_close = True
     
     while True: #Program Async Main
         if vr_bits.active is True:
-            
-            if vr_bits.change > 0 and vr_bits.is_close == True:
+            if vr_bits.touch_depth_changed is True and vr_bits.is_close is True:
+                vr_bits.arousal,vr_bits.last_touch = stroking(vr_bits.arousal, 3)
+                vr_bits.touch_depth_changed = False
+            if vr_bits.change > 0 and vr_bits.is_close is True:
                 vr_bits.line_check()
                 vr_bits.arousal, vr_bits.last_touch = stroking(vr_bits.arousal, vr_bits.change)
                 vr_bits.change = 0
@@ -606,5 +624,9 @@ async def main():
     redraw_ui()
     
     await arousalloop(dispatcher) #start main loop
-    
-asyncio.run(main())
+
+
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("Exiting...")

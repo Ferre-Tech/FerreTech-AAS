@@ -25,9 +25,9 @@ def main():
         print("Starting loop for 15 seconds of changing position data")
         run_time = time.time() + 15
         while(time.time() < run_time):
-                client.send_message(f"{preamble}VFH/Zone/Touch/Sheathed_Touch", 0.0)
+                client.send_message(f"{preamble}OGB/Pen/CatDick/TouchSelf", 0.0)
                 time.sleep(1)
-                client.send_message(f"{preamble}VFH/Zone/Touch/Sheathed_Touch", 0.5)
+                client.send_message(f"{preamble}OGB/Pen/CatDick/TouchSelf", 0.5)
                 time.sleep(1)
                 
         print("Loop complete.")
