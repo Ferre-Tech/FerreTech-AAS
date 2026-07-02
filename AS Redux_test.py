@@ -24,6 +24,7 @@ def main():
         time.sleep(3)
         print("Starting loop for 15 seconds of changing position data")
         run_time = time.time() + 15
+        client.send_message(f"{preamble}OGB/Pen/CatDick/TouchSelfClose", True)
         while(time.time() < run_time):
                 client.send_message(f"{preamble}OGB/Pen/CatDick/TouchSelf", 0.0)
                 time.sleep(1)

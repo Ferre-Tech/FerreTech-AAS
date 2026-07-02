@@ -10,7 +10,7 @@ from pythonosc.osc_server import AsyncIOOSCUDPServer
 from typing import List, Any
 from pathlib import Path
 from as_config import AS_Config, AS_Object
-from constants import DEBUG, callback
+from constants import DEBUG, callback, VERSION
 
 from loadfile import load_configs, check_for_config, list_configs
 from ui import redraw_ui
@@ -21,10 +21,10 @@ serverIp = "127.0.0.1"
 serverPort = 9010
 
 vrcIp = "127.0.0.1"
-vrcPort = 9001
+vrcPort = 9000
 
 line_limit = 25
-version = "2.0.0"
+version = VERSION
 filepath = ""
 
 #Global functions
@@ -59,9 +59,18 @@ def config_bits(bits_select, config) -> object:
     name = config['name']
     arousal_messages = config['arousal_parameters']
     multi_message = config['split_arousal']
-    decay = config['arousal_decay']
-    base_gain = config['base_arousal_increase']
-    timeout = config['touch_timeout']
+    try:
+        decay = config['arousal_decay']
+    except:
+        decay = 0.001
+    try:
+        base_gain = config['base_arousal_increase']
+    except:
+        base_gain = 0.2
+    try:
+        timeout = config['touch_timeout']
+    except:
+        timeout = 45
 
 
 
@@ -107,33 +116,38 @@ def config_bits(bits_select, config) -> object:
                 print(f"{item} : {config[item]}")
 
             msg_list = item.split("/")
-            name = msg_list[-2]
+            name = msg_list[-1]
 
             new_touch = None
 
-            if name not in new_bits.zone_list:
-                new_bits.zone_dict += {name:new_touch}
+            if name not in new_bits.zone_dict:
+                new_bits.zone_dict[name] = new_touch
 
             else:
                 new_touch = new_bits.zone_dict[name]
-            msg_end = len(item) - len(name) - 1
+            msg_end = len(item) - len(name)
             preamble = item[0:msg_end]
 
             new_touch = AS_Object(name, new_bits.dispatcher, preamble)
-            if config[item] is callback.VELOCITY:
-                new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-            elif config[item] is callback.TOUCH:
-                new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
-                new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
-                new_touch.dispatch_add(f"{item}/Frot", callback.VELOCITY)
-                new_touch.dispatch_add(f"{item}/CloseSelf", callback.IS_CLOSE)
-                new_touch.dispatch_add(f"{item}/CloseOthers", callback.IS_CLOSE)
-                new_touch.dispatch_add(f"{item}/CloseFrot", callback.IS_CLOSE)
+            match config[item]:
+                case callback.VELOCITY.value:
+                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
+                case callback.TOUCH.value:
+                    new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/Frot", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/CloseSelf", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/CloseOthers", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/CloseFrot", callback.IS_CLOSE)
+
+            #print(new_touch)
+
+            new_bits.zone_dict[name] = new_touch
 
     new_bits.bit = bits_select.bit
     new_bits.active = bits_select.active
@@ -187,7 +201,7 @@ def first_load() -> dict:
 
     return loaded_configs
 
-async def change_arousal(zone: object, base_arousal_gain: float):
+def change_arousal(zone: AS_Object, base_arousal_gain: float):
     if zone.is_touched():
         return base_arousal_gain * zone.get_arousal_val()
 
@@ -218,20 +232,21 @@ async def arousalloop(dispatcher):
         if vr_bits.active is True:
             touch_check = False
             for zone in vr_bits.zone_dict:
-                if zone.is_touched():
-                    vr_bits.arousal += change_arousal(zone, vr_bits.arousal_increase)
+                if vr_bits.zone_dict[zone].is_touched():
+                    vr_bits.arousal += change_arousal(vr_bits.zone_dict[zone], vr_bits.arousal_increase)
                     vr_bits.last_touch = time.time()
 
-            if vr_bits.touch_depth_changed is True and vr_bits.is_close is True:
-                vr_bits.arousal,vr_bits.last_touch = stroking(vr_bits.arousal, 3)
-                vr_bits.touch_depth_changed = False
-            if vr_bits.change > 0 and vr_bits.is_close is True:
-                vr_bits.line_check()
-                vr_bits.arousal, vr_bits.last_touch = stroking(vr_bits.arousal, vr_bits.change)
-                vr_bits.change = 0
-            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(vr_bits.last_touch, 45):
+#            if vr_bits.touch_depth_changed is True and vr_bits.is_close is True:
+#                vr_bits.arousal,vr_bits.last_touch = stroking(vr_bits.arousal, 3)
+#                vr_bits.touch_depth_changed = False
+#            if vr_bits.change > 0 and vr_bits.is_close is True:
+#                vr_bits.line_check()
+#                vr_bits.arousal, vr_bits.last_touch = stroking(vr_bits.arousal, vr_bits.change)
+#                vr_bits.change = 0 
+
+            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(vr_bits.last_touch, vr_bits.arousal_decay):
                 vr_bits.flagging()
-            elif vr_bits.arousal > 1 and timeout(vr_bits.last_touch, 90):
+            elif vr_bits.arousal > 1 and timeout(vr_bits.last_touch, vr_bits.arousal_decay * 2):
                 vr_bits.flagging()
             if vr_bits.pre is True:
                 vr_bits.send_message(vr_bits.get_message("pre"), True)
@@ -299,7 +314,7 @@ async def main():
 
     server = AsyncIOOSCUDPServer((serverIp, serverPort), dispatcher, asyncio.get_event_loop())
     transport, protocol = await server.create_serve_endpoint()
-    redraw_ui()
+    redraw_ui(version, serverIp, serverPort)
     
     await arousalloop(dispatcher) #start main loop
 

@@ -67,7 +67,7 @@ def check_for_config() -> bool:
         print("Current working directory: " + os.getcwd())
 
     #Check and see if the config exists; If so, open it and return the file to main
-    if os.access("ASConfig.cfg", os.R_OK):
+    if exists == 1:
         try:
             config = open("ASConfig.cfg")
         except PermissionError:
@@ -89,6 +89,7 @@ def check_for_config() -> bool:
             vrcPort = 9000
 
             user_config = []
+            config = open("ASConfig.cfg")
             try:
                 config_start = -1
                 template_start = -1
@@ -100,16 +101,16 @@ def check_for_config() -> bool:
                         user_config.append(line)
                     elif "serverIp" in line:
                         ip = line.split("=")
-                        serverIp = ip[1].trim()
+                        serverIp = ip[1].strip()
                     elif "serverPort" in line:
                         port = line.split("=")
-                        serverPort = port[1].trim()
+                        serverPort = port[1].strip()
                     elif "vrcIp" in line:
                         ip = line.split("=")
-                        vrcIp = ip[1].trim()
+                        vrcIp = ip[1].strip()
                     elif "vrcPort" in line:
                         port = line.split("=")
-                        serverPort = port[1].trim()
+                        serverPort = port[1].strip()
                     elif "JadeTech" in line:
                         config_start = i
                     elif "0 {" in line:
@@ -134,6 +135,7 @@ def check_for_config() -> bool:
                             f"vrcPort = {vrcPort}\n\n" +
                             f"JadeTech Arousal System {VERSION}\n\n"
                             )
+                        template = TEMPLATE
                         filedata = header + template
 
                         for line in user_config:
@@ -232,7 +234,7 @@ def load_configs(config) -> list:
                 av_config[tags[0]] = tags[1]
             if "/avatar/parameters/" in data:
                 msg = data.split(",")
-                msg[1] = msg[1].strip()
+                msg[1] = int(msg[1].strip())
                 av_config[msg[0]] = msg[1]
     config.close()
     if debug is True:

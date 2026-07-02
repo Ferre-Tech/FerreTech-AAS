@@ -2,13 +2,14 @@ from enum import Enum
 
 #Callback handler types
 class callback(Enum):
-    VELOCITY = 1
-    ACTIVATE = 2
-    TOUCH = 3
-    BIT = 4
-    IS_CLOSE = 5
+    VELOCITY = int(1)
+    ACTIVATE = int(2)
+    TOUCH = int(3)
+    BIT = int(4)
+    IS_CLOSE = int(5)
 
 DEBUG = False
+LINE_LIMIT = 25
 
 VERSION = "2.2.0-TESTING"
 

@@ -43,7 +43,7 @@ class AS_Config:
         self.timeout = arousal_timeout
         self.pre = False
         self.sps = False
-        self.__last_time = float("-inf")
+        self.last_touch = float("-inf")
         self.__map_list = [] #Holds OSC Message mappings for use with the server unmap function
         self.dispatcher = dispatcher
         self.dispatch_init_config()
@@ -53,7 +53,7 @@ class AS_Config:
         self.changed = False
         self.is_close = False
         self.__ui_lines = 0
-        self.zone_dict: dict = []
+        self.zone_dict: dict = {}
 
     def __repr__(self):
         return f"Bits({self.name=}, {self.dispatcher=}, {self.__map_list=}"
@@ -83,7 +83,7 @@ class AS_Config:
 
     #Enable and disable the system
     def activate_callback(self, address: str, activate: bool) -> None:
-        self.line_check()
+        line_check(self.__ui_lines)
         if activate:
             print("Arousal System activated")
         if activate is not True:
@@ -106,7 +106,7 @@ class AS_Config:
     def bit_select_callback(self, address: str, x: float) -> None:
         if self.bit != 0:
             self.changed = True
-        self.line_check()
+        line_check(self.__ui_lines)
         print(f"Bit set: {x}")
         self.bit = x
 
@@ -117,15 +117,15 @@ class AS_Config:
         if callback_id == 0:
             raise Exception("No valid callback supplied")
             return
-        line_check(self.__ui_lines)
+        #line_check(self.__ui_lines)
         print(f"Adding OSC listener for {oscmsg}")
         self.__map_list.append(oscmsg)
         self.dispatcher.map(oscmsg, self.get_handler(callback_id))
         
     #Default callbacks all configs will use
     def dispatch_init_config(self):
-        self.dispatcher.map("/avatar/parameters/arousalsys/activate", self.get_handler(2))
-        self.dispatcher.map("/avatar/parameters/arousalsys/bit", self.get_handler(4))
+        self.dispatcher.map("/avatar/parameters/arousalsys/activate", self.get_handler(callback.ACTIVATE))
+        self.dispatcher.map("/avatar/parameters/arousalsys/bit", self.get_handler(callback.BIT))
         self.__map_list.append("/avatar/parameters/arousalsys/activate")
         self.__map_list.append("/avatar/parameters/arousalsys/bit")
 
@@ -151,25 +151,30 @@ class AS_Config:
         #Since no nice methods exist for handling specific dynamic handler unmapping, do them all and only throw errors if DEBUG is enabled
         for mapping in self.__map_list:
             try:
-                self.dispatcher.unmap(mapping, self.get_handler(1))
+                self.dispatcher.unmap(mapping, self.get_handler(callback.VELOCITY))
             except ValueError:
                 if DEBUG == True:
-                    print(f"No mapping found for {mapping}, {self.get_handler(1)}")
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.VELOCITY)}")
             try:
-                self.dispatcher.unmap(mapping, self.get_handler(2))
+                self.dispatcher.unmap(mapping, self.get_handler(callback.ACTIVATE))
             except ValueError:
                 if DEBUG == True:
-                    print(f"No mapping found for {mapping}, {self.get_handler(1)}")
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.ACTIVATE)}")
             try:
-                self.dispatcher.unmap(mapping, self.get_handler(3))
+                self.dispatcher.unmap(mapping, self.get_handler(callback.TOUCH))
             except ValueError:
                 if DEBUG == True:
-                    print(f"No mapping found for {mapping}, {self.get_handler(1)}")
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.TOUCH)}")
             try:
-                self.dispatcher.unmap(mapping, self.get_handler(4))
+                self.dispatcher.unmap(mapping, self.get_handler(callback.BIT))
             except ValueError:
                 if DEBUG == True:
-                    print(f"No mapping found for {mapping}, {self.get_handler(1)}")
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.BIT)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.IS_CLOSE))
+            except ValueError:
+                if DEBUG is True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.IS_CLOSE)}")
     
     def add_parameter(self, param_key: int, param: str):
         self.__parameters[param_key] = param
@@ -209,14 +214,17 @@ class AS_Config:
 #Object to hold each Touch zone, plug, or socket defined in the config file
 class AS_Object(AS_Config):
     def __init__(self, name: str, dispatcher: Dispatcher, message_preamble: str, multiplier = 0.1):
-        super().name = name
+        self.name = name
         self.last_pos = float("-inf")
         self.__is_close = False
         self.__pos_list = []
         self.dispatcher = dispatcher
         self.multiplier = multiplier
-        super().__map_list = []
-        super().__message_preamble = message_preamble
+        self.__map_list = []
+        self.__message_preamble = message_preamble
+
+    def __repr__(self):
+        return f"{self.name}: {self.dispatcher=}, {self.__map_list=}, {self.__is_close=}"
 
     def is_close_callback(self, address: str, is_close: bool) -> None:
         self.__is_close = is_close
@@ -231,6 +239,21 @@ class AS_Object(AS_Config):
                 self.__pos_list.pop(0)
         print(end="")
 
+    def get_handler(self, handler_id: callback):
+        match handler_id:
+            case callback.VELOCITY:
+                return self.velocity_callback
+            case callback.ACTIVATE:
+                return self.activate_callback
+            case callback.TOUCH:
+                return self.jangledJewels_callback
+            case callback.BIT:
+                return self.bit_select_callback
+            case callback.IS_CLOSE:
+                return self.is_close_callback
+            case _:
+                raise Exception("No valid handler ID supplied")
+
     #returns the average of the last 10 values (presently ~2 seconds with async sleep) TODO: adjust delta to be change over time instead of last 10 values
     def __get_delta_vel(self) -> float:
         avg = 0
@@ -240,7 +263,55 @@ class AS_Object(AS_Config):
         return round(avg / len(self.__pos_list), 3)
     
     def get_arousal_val(self) -> float:
-        return self.__get_delta_vel * self.multiplier
+        return self.__get_delta_vel() * self.multiplier
     
     def is_touched(self) -> bool:
         return self.__is_close
+    
+    def clear_mapping(self):
+        #Since no nice methods exist for handling specific dynamic handler unmapping, do them all and only throw errors if DEBUG is enabled
+        for mapping in self.__map_list:
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.VELOCITY))
+            except ValueError:
+                if DEBUG == True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.VELOCITY)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.ACTIVATE))
+            except ValueError:
+                if DEBUG == True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.ACTIVATE)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.TOUCH))
+            except ValueError:
+                if DEBUG == True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.TOUCH)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.BIT))
+            except ValueError:
+                if DEBUG == True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.BIT)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.IS_CLOSE))
+            except ValueError:
+                if DEBUG is True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.IS_CLOSE)}")
+
+    #Add dispatcher OSC message mapping
+    def dispatch_add(self, oscmsg: str, callback_id: int):
+        if DEBUG is True:
+            print(f"{oscmsg}:{callback_id}")
+        if callback_id == 0:
+            raise Exception("No valid callback supplied")
+            return
+        #line_check(self.__ui_lines)
+        print(f"Adding OSC listener for {oscmsg}")
+        self.__map_list.append(oscmsg)
+        self.dispatcher.map(oscmsg, self.get_handler(callback_id))
+        
+    #Default callbacks all configs will use
+    def dispatch_init_config(self):
+        self.dispatcher.map("/avatar/parameters/arousalsys/activate", self.get_handler(callback.ACTIVATE))
+        self.dispatcher.map("/avatar/parameters/arousalsys/bit", self.get_handler(callback.BIT))
+        self.__map_list.append("/avatar/parameters/arousalsys/activate")
+        self.__map_list.append("/avatar/parameters/arousalsys/bit")
