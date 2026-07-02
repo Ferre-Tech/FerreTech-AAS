@@ -1,8 +1,8 @@
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import udp_client
 from enum import Enum
-from ui import line_check
-from constants import callback, DEBUG
+from Resources.ui import line_check
+from Resources.constants import callback, DEBUG
 
 
 #Checks for a change in depth of 5% or more.

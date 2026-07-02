@@ -1,7 +1,7 @@
 from typing import List, Any
 from pathlib import Path
 import os
-from constants import VERSION, DEBUG, TEMPLATE
+from Resources.constants import VERSION, DEBUG, TEMPLATE
 
 header = (
     "serverIp = 127.0.0.1\n" +

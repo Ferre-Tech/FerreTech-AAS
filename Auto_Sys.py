@@ -9,11 +9,11 @@ from pythonosc import udp_client
 from pythonosc.osc_server import AsyncIOOSCUDPServer
 from typing import List, Any
 from pathlib import Path
-from as_config import AS_Config, AS_Object
-from constants import DEBUG, callback, VERSION
+from Resources.as_config import AS_Config, AS_Object
+from Resources.constants import DEBUG, callback, VERSION
 
-from loadfile import load_configs, check_for_config, list_configs
-from ui import redraw_ui
+from Resources.loadfile import load_configs, check_for_config, list_configs
+from Resources.ui import redraw_ui
 
 
 #OSC Server and client details

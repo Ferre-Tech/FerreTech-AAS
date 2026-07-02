@@ -1,5 +1,5 @@
 import os
-from constants import LINE_LIMIT
+from Resources.constants import LINE_LIMIT
 
 line_limit = LINE_LIMIT
 
