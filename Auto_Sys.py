@@ -134,17 +134,23 @@ def config_bits(bits_select, config) -> object:
                     new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/PenSelf", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
                 case callback.TOUCH.value:
                     new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/Frot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/CloseSelf", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/CloseOthers", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/CloseFrot", callback.IS_CLOSE)
-
+                    new_touch.is_close = True
+                case callback.HOLE.value:
+                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
             #print(new_touch)
 
             new_bits.zone_dict[name] = new_touch

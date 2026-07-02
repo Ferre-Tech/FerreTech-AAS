@@ -7,11 +7,12 @@ class callback(Enum):
     TOUCH = int(3)
     BIT = int(4)
     IS_CLOSE = int(5)
+    HOLE = int(6)
 
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.3.0-TESTING"
+VERSION = "2.3.2-TESTING"
 
 TEMPLATE = (
     "#Do not remove this template. All user configs should be numbered 1 and higher\n" +
@@ -39,7 +40,7 @@ TEMPLATE = (
     "Knot=1\n\n" +
     "#OSC listener messages - One per line, separate the ID from the message with a comma\n" +
     "#These can be retrieved from the OSCGB debug menu. These are the touch zones or penetrators you want this system to watch\n" +
-    "#OSC Message types: 1 - Velocity, 3 - Touchzones\n" +
+    "#OSC Message types: 1 - Velocity, 3 - Touchzones, 6 - Holes/Sockets\n" +
     "/avatar/parameters/VFH/Zone/Touch/Balls_Touched, 3\n" +
     "/avatar/parameters/OGB/Pen/Knot, 1\n\n" +
     "}"
