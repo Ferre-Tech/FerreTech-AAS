@@ -1,4 +1,3 @@
-from typing import List, Any
 from pathlib import Path
 import os
 from Resources.constants import VERSION, DEBUG, TEMPLATE
@@ -136,7 +135,7 @@ def check_for_config() -> bool:
                             f"JadeTech Arousal System {VERSION}\n\n"
                             )
                         template = TEMPLATE
-                        filedata = header + template
+                        filedata = header + template + "\n\n"
 
                         for line in user_config:
                             filedata += line

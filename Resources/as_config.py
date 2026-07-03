@@ -14,6 +14,26 @@ def depth_changed(currentPos, lastPos) -> int:
         return 2
     return 0
 
+def get_lowest_val(val_list: list, low_val: float):
+    if val_list == []:
+        return low_val
+    val = val_list.pop()
+    if val > low_val:
+        get_lowest_val(val_list, low_val)
+    elif val < low_val:
+        get_lowest_val(val_list, val)
+    get_lowest_val(val_list, low_val)
+
+def get_highest_val(val_list: list, high_val: float):
+    if val_list == []:
+        return high_val
+    val = val_list.pop()
+    if val > high_val:
+        get_highest_val(val_list, high_val)
+    elif val < high_val:
+        get_highest_val(val_list, val)
+    get_highest_val(val_list, high_val)
+
 #Class defines and holds most functions and OSC messaging in order to communicate with a connected VRC avatar as defined in a supplied config, selected via the class value *.bit
 #Classes presently are built semi-immutable in order to maintain cleaner OSC messaging and to remove unecessary OSC listeners when a new one is made
 class AS_Config:
@@ -38,8 +58,8 @@ class AS_Config:
         self.active = False
         self.__start_val = split_param_start
         self.arousal = 0.0
-        self.arousal_increase = base_arousal_increase
-        self.arousal_decay = arousal_decay
+        self.arousal_increase: float = base_arousal_increase
+        self.arousal_decay: float = arousal_decay
         self.timeout = arousal_timeout
         self.pre = False
         self.sps = False
@@ -121,7 +141,10 @@ class AS_Config:
         print(f"Adding OSC listener for {oscmsg}")
         self.__map_list.append(oscmsg)
         self.dispatcher.map(oscmsg, self.get_handler(callback_id))
-        
+    
+    def hole_callback(self, address:str , depth: float):
+        pass
+    
     #Default callbacks all configs will use
     def dispatch_init_config(self):
         self.dispatcher.map("/avatar/parameters/arousalsys/activate", self.get_handler(callback.ACTIVATE))
@@ -144,6 +167,8 @@ class AS_Config:
                 return self.bit_select_callback
             case callback.IS_CLOSE:
                 return self.is_close_callback
+            case callback.HOLE:
+                return self.hole_callback
             case _:
                 raise Exception("No valid handler ID supplied")
     
@@ -175,6 +200,11 @@ class AS_Config:
             except ValueError:
                 if DEBUG is True:
                     print(f"No mapping found for {mapping}, {self.get_handler(callback.IS_CLOSE)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.HOLE))
+            except ValueError:
+                if DEBUG is True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.HOLE)}")
     
     def add_parameter(self, param_key: int, param: str):
         self.__parameters[param_key] = param
@@ -231,12 +261,22 @@ class AS_Object(AS_Config):
         print(end="")
     
     #Creates a list of position changes. Will average the output over a delta time
-    def velocity_callback(self, address:str , depth: float):
+    def velocity_callback(self, address:str , depth: float) -> None:
+        if self.__is_close is True:
+            current_pos = round(depth, 3)
+            if current_pos is not self.last_pos:
+                self.__pos_list.append(depth)
+                if len(self.__pos_list) > 25:
+                    self.__pos_list.pop(0)
+            print(end="")
+
+    def hole_callback(self, address:str , depth: float) -> None:
         current_pos = round(depth, 3)
         if current_pos is not self.last_pos:
             self.__pos_list.append(depth)
             if len(self.__pos_list) > 25:
                 self.__pos_list.pop(0)
+        #self.__is_close = True
         print(end="")
 
     def get_handler(self, handler_id: callback):
@@ -251,16 +291,24 @@ class AS_Object(AS_Config):
                 return self.bit_select_callback
             case callback.IS_CLOSE:
                 return self.is_close_callback
+            case callback.HOLE:
+                return self.hole_callback
             case _:
                 raise Exception("No valid handler ID supplied")
 
     #returns the average of the last 10 values (presently ~2 seconds with async sleep) TODO: adjust delta to be change over time instead of last 10 values
     def __get_delta_vel(self) -> float:
-        avg = 0
-        for val in self.__pos_list:
-            avg += val
+        if self.__pos_list == []:
+            return 0.0
+        #low_val = get_lowest_val(self.__pos_list.sort(reverse=True), 1.0)
+        #high_val = get_highest_val(self.__pos_list.sort(), 0.0)
+        val_list = self.__pos_list.copy()
+        val_list.sort(reverse=True)
+        high_val = val_list[0]
+        low_val = val_list[-1]
+        delta = high_val - low_val
         self.__pos_list = [self.__pos_list.pop()]
-        return round(avg / len(self.__pos_list), 3)
+        return round(delta, 3)
     
     def get_arousal_val(self) -> float:
         return self.__get_delta_vel() * self.multiplier
@@ -296,6 +344,11 @@ class AS_Object(AS_Config):
             except ValueError:
                 if DEBUG is True:
                     print(f"No mapping found for {mapping}, {self.get_handler(callback.IS_CLOSE)}")
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(callback.HOLE))
+            except ValueError:
+                if DEBUG is True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.HOLE)}")
 
     #Add dispatcher OSC message mapping
     def dispatch_add(self, oscmsg: str, callback_id: int):
@@ -315,3 +368,9 @@ class AS_Object(AS_Config):
         self.dispatcher.map("/avatar/parameters/arousalsys/bit", self.get_handler(callback.BIT))
         self.__map_list.append("/avatar/parameters/arousalsys/activate")
         self.__map_list.append("/avatar/parameters/arousalsys/bit")
+
+    def get_pos_list_len(self) -> int:
+        return len(self.__pos_list)
+    
+    def decay_pos_list(self) -> None:
+        self.__pos_list.pop()

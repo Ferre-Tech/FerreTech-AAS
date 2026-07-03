@@ -1,5 +1,4 @@
 import argparse
-import random
 import time
 import asyncio
 import math
@@ -45,8 +44,9 @@ def stroking(arousal, change) -> float:
     return arousal, time.time()
         
 #Touch timeout for flagging function
-def timeout(last_touch, timeout) -> bool:
-    if time.time() > last_touch + timeout:
+def timeout(last_touch: float, timeout: float) -> bool:
+    end_time = last_touch + timeout
+    if time.time() > end_time:
         return True
     return False
     
@@ -139,18 +139,24 @@ def config_bits(bits_select, config) -> object:
                     new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
                 case callback.TOUCH.value:
                     new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
                     new_touch.is_close = True
                 case callback.HOLE.value:
+                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.HOLE)
+                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.HOLE)
                     new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
             #print(new_touch)
 
             new_bits.zone_dict[name] = new_touch
@@ -209,7 +215,7 @@ def first_load() -> dict:
 
 def change_arousal(zone: AS_Object, base_arousal_gain: float):
     if zone.is_touched():
-        return base_arousal_gain * zone.get_arousal_val()
+        return float(base_arousal_gain) * float(zone.get_arousal_val())
 
 
 #Main async loop
@@ -236,23 +242,21 @@ async def arousalloop(dispatcher):
     
     while True: #Program Async Main
         if vr_bits.active is True:
-            touch_check = False
+
+            #For each defined plug/socket/touchzone check its delta change and return its multiplier
+            # Tested with time smoothing and the await seems to be good enough for smooth changes
             for zone in vr_bits.zone_dict:
-                if vr_bits.zone_dict[zone].is_touched():
-                    vr_bits.arousal += change_arousal(vr_bits.zone_dict[zone], vr_bits.arousal_increase)
+                zone_obj = vr_bits.zone_dict[zone]
+                if zone_obj.is_touched():
+                    vr_bits.arousal += change_arousal(zone_obj, vr_bits.arousal_increase)
                     vr_bits.last_touch = time.time()
+                #If not touched, remove stale values (to better track the change since last check)
+                if zone_obj.get_pos_list_len() > 0:
+                    zone_obj.decay_pos_list()
 
-#            if vr_bits.touch_depth_changed is True and vr_bits.is_close is True:
-#                vr_bits.arousal,vr_bits.last_touch = stroking(vr_bits.arousal, 3)
-#                vr_bits.touch_depth_changed = False
-#            if vr_bits.change > 0 and vr_bits.is_close is True:
-#                vr_bits.line_check()
-#                vr_bits.arousal, vr_bits.last_touch = stroking(vr_bits.arousal, vr_bits.change)
-#                vr_bits.change = 0 
-
-            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(vr_bits.last_touch, vr_bits.arousal_decay):
+            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.arousal_decay)):
                 vr_bits.flagging()
-            elif vr_bits.arousal > 1 and timeout(vr_bits.last_touch, vr_bits.arousal_decay * 2):
+            elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.arousal_decay) * 2):
                 vr_bits.flagging()
             if vr_bits.pre is True:
                 vr_bits.send_message(vr_bits.get_message("pre"), True)
@@ -271,7 +275,7 @@ async def arousalloop(dispatcher):
         if vr_bits.changed == True:
             
             if vr_bits.bit == 0:
-                redraw_ui()
+                redraw_ui(version, serverIp, serverPort)
                 list_configs(loaded_configs)
                 
             else:
