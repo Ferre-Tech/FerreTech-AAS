@@ -99,17 +99,13 @@ def check_for_config() -> bool:
                     if config_end != -1:
                         user_config.append(line)
                     elif "serverIp" in line:
-                        ip = line.split("=")
-                        serverIp = ip[1].strip()
+                        serverIp = line
                     elif "serverPort" in line:
-                        port = line.split("=")
-                        serverPort = port[1].strip()
+                        serverPort = line
                     elif "vrcIp" in line:
-                        ip = line.split("=")
-                        vrcIp = ip[1].strip()
+                        vrcIp = line
                     elif "vrcPort" in line:
-                        port = line.split("=")
-                        serverPort = port[1].strip()
+                        serverPort = line
                     elif "JadeTech" in line:
                         config_start = i
                     elif "0 {" in line:
@@ -128,10 +124,10 @@ def check_for_config() -> bool:
                 try:
                     with open("ASConfig.cfg", "w") as config:
                         header = (
-                            f"serverIp = {serverIp}\n" +
-                            f"serverPort = {serverPort}\n" +
-                            f"vrcIp = {vrcIp}\n" +
-                            f"vrcPort = {vrcPort}\n\n" +
+                            f"{serverIp}" +
+                            f"{serverPort}" +
+                            f"{vrcIp}" +
+                            f"{vrcPort}" +
                             f"JadeTech Arousal System {VERSION}\n\n"
                             )
                         template = TEMPLATE

@@ -130,7 +130,7 @@ def config_bits(bits_select, config) -> object:
 
             new_touch = AS_Object(name, new_bits.dispatcher, preamble)
             match config[item]:
-                case callback.VELOCITY.value:
+                case callback.VELOCITY.value: #Default plug setup
                     new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
@@ -140,11 +140,11 @@ def config_bits(bits_select, config) -> object:
                     new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
-                case callback.TOUCH.value:
+                case callback.TOUCH.value: #For now, touch zones are always on
                     new_touch.dispatch_add(f"{item}/Others", callback.HOLE)
                     new_touch.dispatch_add(f"{item}/Self", callback.HOLE)
                     new_touch.set_is_close()
-                case callback.HOLE.value:
+                case callback.HOLE.value: #Default socket setup
                     new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
@@ -157,6 +157,13 @@ def config_bits(bits_select, config) -> object:
                     new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
+                case callback.RING.value: #For now, rings are always on
+                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.HOLE)
+                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.HOLE)
+                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.HOLE)
+                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.HOLE)
+                    new_touch.set_is_close()
+
             #print(new_touch)
 
             new_bits.zone_dict[name] = new_touch
