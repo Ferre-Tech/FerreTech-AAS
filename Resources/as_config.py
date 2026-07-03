@@ -63,6 +63,7 @@ class AS_Config:
         self.timeout = arousal_timeout
         self.pre = False
         self.sps = False
+        self.throb = False
         self.last_touch = float("-inf")
         self.__map_list = [] #Holds OSC Message mappings for use with the server unmap function
         self.dispatcher = dispatcher
@@ -218,9 +219,19 @@ class AS_Config:
         if self.arousal > 0.005:
             self.arousal -= 0.001
         
+        if self.arousal < 1.5 and self.pre is True:
+            self.pre = False
+            self.send_message(self.get_message("pre"), False)
+        if self.arousal < 1.5 and self.throb is True:
+            self.throb = False
+            self.send_message(self.get_message("throb"), False)
+        if self.arousal < 0.8 and self.sps is True:
+            self.sps = False
+            self.send_message(self.get_message("sps"), False)
+
         if self.arousal < 0.005 and self.arousal >= 0.0: #reset everything
-            self.__pre = False
-            self.__sps = False
+            self.pre = False
+            self.sps = False
             self.arousal = 0.0
 
     def send_message(self, msg: str, val: any):

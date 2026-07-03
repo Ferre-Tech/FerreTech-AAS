@@ -214,8 +214,8 @@ def first_load() -> dict:
     return loaded_configs
 
 def change_arousal(zone: AS_Object, base_arousal_gain: float):
-    if zone.is_touched():
-        return float(base_arousal_gain) * float(zone.get_arousal_val())
+    #if zone.is_touched():
+    return float(base_arousal_gain) * float(zone.get_arousal_val())
 
 
 #Main async loop
@@ -241,7 +241,7 @@ async def arousalloop(dispatcher):
     #vr_bits.is_close = True
     
     while True: #Program Async Main
-        if vr_bits.active is True:
+        if vr_bits.active is True and vr_bits.changed is False:
 
             #For each defined plug/socket/touchzone check its delta change and return its multiplier
             # Tested with time smoothing and the await seems to be good enough for smooth changes
@@ -258,21 +258,11 @@ async def arousalloop(dispatcher):
                 vr_bits.flagging()
             elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.arousal_decay) * 2):
                 vr_bits.flagging()
-            if vr_bits.pre is True:
-                vr_bits.send_message(vr_bits.get_message("pre"), True)
-                vr_bits.send_message(vr_bits.get_message("throb"), True)
-            elif vr_bits.pre is False:
-                vr_bits.send_message(vr_bits.get_message("pre"), False)
-                vr_bits.send_message(vr_bits.get_message("throb"), False)
-            if vr_bits.sps is True:
-                vr_bits.send_message(vr_bits.get_message("sps"), True)
-            elif vr_bits.sps is False:
-                vr_bits.send_message(vr_bits.get_message("sps"), False)
                 
             vr_bits.send_arousal()
         
         #Watch for bit value change (avatar change generally)
-        if vr_bits.changed == True:
+        if vr_bits.changed is True:
             
             if vr_bits.bit == 0:
                 redraw_ui(version, serverIp, serverPort)
