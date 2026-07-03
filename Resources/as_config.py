@@ -374,3 +374,6 @@ class AS_Object(AS_Config):
     
     def decay_pos_list(self) -> None:
         self.__pos_list.pop()
+
+    def set_is_close(self) -> None:
+        self.__is_close = True

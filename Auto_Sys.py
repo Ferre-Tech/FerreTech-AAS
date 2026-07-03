@@ -141,9 +141,9 @@ def config_bits(bits_select, config) -> object:
                     new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
                     new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
                 case callback.TOUCH.value:
-                    new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
-                    new_touch.is_close = True
+                    new_touch.dispatch_add(f"{item}/Others", callback.HOLE)
+                    new_touch.dispatch_add(f"{item}/Self", callback.HOLE)
+                    new_touch.set_is_close()
                 case callback.HOLE.value:
                     new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
