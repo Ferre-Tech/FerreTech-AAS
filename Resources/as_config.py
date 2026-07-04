@@ -58,9 +58,9 @@ class AS_Config:
         self.active = False
         self.__start_val = split_param_start
         self.arousal = 0.0
-        self.arousal_increase: float = base_arousal_increase
-        self.arousal_decay: float = arousal_decay
-        self.timeout = arousal_timeout
+        self.arousal_increase: float = float(base_arousal_increase)
+        self.arousal_decay: float = float(arousal_decay)
+        self.timeout:float = float(arousal_timeout)
         self.pre = False
         self.sps = False
         self.throb = False
@@ -217,7 +217,7 @@ class AS_Config:
 
     def flagging(self):
         if self.arousal > 0.005:
-            self.arousal -= 0.001
+            self.arousal -= self.arousal_decay
         
         if self.arousal < 1.5 and self.pre is True:
             self.pre = False
@@ -254,8 +254,9 @@ class AS_Config:
 
 #Object to hold each Touch zone, plug, or socket defined in the config file
 class AS_Object(AS_Config):
-    def __init__(self, name: str, dispatcher: Dispatcher, message_preamble: str, multiplier = 0.1):
+    def __init__(self, name: str, dispatcher: Dispatcher, message_preamble: str, type: callback = None, multiplier = 0.1):
         self.name = name
+        self.type = type
         self.last_pos = float("-inf")
         self.__is_close = False
         self.__pos_list = []
@@ -265,7 +266,7 @@ class AS_Object(AS_Config):
         self.__message_preamble = message_preamble
 
     def __repr__(self):
-        return f"{self.name}: {self.dispatcher=}, {self.__map_list=}, {self.__is_close=}"
+        return f"{self.name}: {self.type=}, {self.dispatcher=}, {self.__map_list=}, {self.__is_close=}"
 
     def is_close_callback(self, address: str, is_close: bool) -> None:
         self.__is_close = is_close
@@ -273,13 +274,12 @@ class AS_Object(AS_Config):
     
     #Creates a list of position changes. Will average the output over a delta time
     def velocity_callback(self, address:str , depth: float) -> None:
-        if self.__is_close is True:
-            current_pos = round(depth, 3)
-            if current_pos is not self.last_pos:
-                self.__pos_list.append(depth)
-                if len(self.__pos_list) > 25:
-                    self.__pos_list.pop(0)
-            print(end="")
+        current_pos = round(depth, 3)
+        if current_pos is not self.last_pos:
+            self.__pos_list.append(depth)
+            if len(self.__pos_list) > 25:
+                self.__pos_list.pop(0)
+        print(end="")
 
     def hole_callback(self, address:str , depth: float) -> None:
         current_pos = round(depth, 3)
@@ -313,6 +313,11 @@ class AS_Object(AS_Config):
             return 0.0
         #low_val = get_lowest_val(self.__pos_list.sort(reverse=True), 1.0)
         #high_val = get_highest_val(self.__pos_list.sort(), 0.0)
+        total = 0.0
+        #for val in self.__pos_list:
+        #    total += val
+        #    val = val / len(self.__pos_list)
+        #    return round(val, 3)
         val_list = self.__pos_list.copy()
         val_list.sort(reverse=True)
         high_val = val_list[0]

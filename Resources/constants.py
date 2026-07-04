@@ -13,7 +13,7 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.3.6-TESTING"
+VERSION = "2.3.7-TESTING"
 
 TEMPLATE = (
     "#Do not remove this template. All user configs should be numbered 1 and higher\n" +
