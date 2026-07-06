@@ -6,7 +6,7 @@ header = (
     "serverIp = 127.0.0.1\n" +
     "serverPort = 9010\n" +
     "vrcIp = 127.0.0.1\n" +
-    "vrcPort = 9001\n\n" +
+    "vrcPort = 9000\n\n" +
     f"JadeTech Arousal System {VERSION}\n\n"
     )
 debug = DEBUG
@@ -66,7 +66,7 @@ def check_for_config() -> bool:
         print("Current working directory: " + os.getcwd())
 
     #Check and see if the config exists; If so, open it and return the file to main
-    if exists == 1:
+    if os.access(filepath + "/ASConfig.cfg",os.W_OK):
         try:
             config = open("ASConfig.cfg")
         except PermissionError:
@@ -82,15 +82,14 @@ def check_for_config() -> bool:
         if current_ver is False:
             #Try to update the config with the updated setup
             #Attempt to keep user configs
-            serverIp = "127.0.0.1"
-            serverPort = 9010
-            vrcIp = "127.0.0.1"
-            vrcPort = 9000
+            serverIp = "serverIp = 127.0.0.1\n"
+            serverPort = "serverPort = 9010\n"
+            vrcIp = "vrcIp = 127.0.0.1\n"
+            vrcPort = "vrcPort = 9000\n"
 
             user_config = []
             config = open("ASConfig.cfg")
             try:
-                config_start = -1
                 template_start = -1
                 config_end = -1
                 i = 0
@@ -105,9 +104,7 @@ def check_for_config() -> bool:
                     elif "vrcIp" in line:
                         vrcIp = line
                     elif "vrcPort" in line:
-                        serverPort = line
-                    elif "JadeTech" in line:
-                        config_start = i
+                        vrcPort = line
                     elif "0 {" in line:
                         template_start = i
                     elif template_start != -1 and "}" in line:
@@ -119,26 +116,30 @@ def check_for_config() -> bool:
                 print(e)
                 return False
             
+            global header
+            global template
+            header = (
+                serverIp +
+                serverPort +
+                vrcIp +
+                f"{vrcPort}\n" +
+                f"JadeTech Arousal System {VERSION}\n\n"
+            )
+            
             #Now that the file is read and the user config is saved, try to rewrite the file if the file is writable
             if os.access("ASConfig.cfg", os.W_OK):
                 try:
                     with open("ASConfig.cfg", "w") as config:
-                        header = (
-                            f"{serverIp}" +
-                            f"{serverPort}" +
-                            f"{vrcIp}" +
-                            f"{vrcPort}" +
-                            f"JadeTech Arousal System {VERSION}\n\n"
-                            )
-                        template = TEMPLATE
-                        filedata = header + template + "\n\n"
+
+                        filedata = header + template
 
                         for line in user_config:
                             filedata += line
 
                         config.write(filedata)
                         config.close()
-                except:
+                except OSError as e:
+                    print (e)
                     print ("Unable to write new config")
                     return False
                 
@@ -147,13 +148,12 @@ def check_for_config() -> bool:
 
         return config
     #if it doesn't exist, try to make a new one with the template data
-    print(f"Config file doesn't exist. Attempting to create file at {filepath}" + "\\ASConfig.cfg")
+    print(f"Config file doesn't exist. Attempting to create file at {filepath}" + "/ASConfig.cfg")
     try:
         f = open("ASConfig.cfg", "x")
         #time.sleep(3)
     except:
         print(f"Unable to create file 'ASConfig.cfg' at {filepath}. Does this file already exist?")
-        f.close()
         return False
     print("Created new config file")
     
@@ -191,14 +191,15 @@ def check_for_config() -> bool:
     if debug is True:
         print(template)
     try:
-        template = header + template
+        template = header + TEMPLATE
         f.write(template)
-    except:
+    except OSError as e:
+        print(e)
         print("Unable to write template data")
         f.close()
         return False
     f.close()
-    print(f"New config file created at {filepath}" + "\\ASConfig.cfg")
+    print(f"New config file created at {filepath}" + "/ASConfig.cfg")
     return True
     
 def load_configs(config) -> list:
@@ -211,7 +212,7 @@ def load_configs(config) -> list:
         
         if (f"{i} " + "{") in data:
             record = True
-        elif data == "}":
+        elif "}" in data:
             record = False
             configs.append(av_config)
             av_config = {}
@@ -219,6 +220,7 @@ def load_configs(config) -> list:
         else:
             data = data.strip(" ")
             data = data.strip("\t")
+            #Parameters
             if "=" in data:
                 tags = data.split("=")
                 tags[0] = tags[0].strip()
@@ -227,16 +229,19 @@ def load_configs(config) -> list:
                 else:
                     tags[1]=tags[1].strip()
                 av_config[tags[0]] = tags[1]
+            #OSC messages
             if "/avatar/parameters/" in data:
                 msg = data.split(",")
                 msg[1] = int(msg[1].strip())
                 av_config[msg[0]] = msg[1]
+    #We're done with the opened config file. close it and return to main
     config.close()
     if debug is True:
         print(configs)
     return configs
 
-#Output a list of available configs 
+#Output a list of available configs
+#config 0 is used for spacing, all user configs should be 1 or higher
 def list_configs(configs) -> None:
     i = 0
     for item in configs:

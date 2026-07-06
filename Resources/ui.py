@@ -3,7 +3,8 @@ from Resources.constants import LINE_LIMIT
 
 line_limit = LINE_LIMIT
 
-#Checks current lines against limit and redraws UI if over limit
+#Checks current lines against limit and redraws UI if over limit. Current unneeded as little prints to the UI.
+#TODO: Remake the UI; track UI lines with a list and FIFO
 def line_check(ui_lines):
     ui_lines += 1
     if(ui_lines > line_limit):

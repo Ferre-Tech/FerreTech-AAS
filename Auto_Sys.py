@@ -27,21 +27,6 @@ version = VERSION
 filepath = ""
 
 #Global functions
-
-#Increases the value only when there is a detected change
-def stroking(arousal, change) -> float:
-    if change != 0 and arousal < 2: #increase the amount if the change is greater
-        if change == 2:
-            arousal += 0.025
-        elif change == 3:
-            arousal += 0.005
-        else:
-            arousal += 0.02
-    elif arousal > 2:
-        arousal = 2
-
-    print(f"arousal up {arousal}")
-    return arousal, time.time()
         
 #Touch timeout for flagging function
 def timeout(last_touch: float, timeout: float) -> bool:
@@ -74,17 +59,14 @@ def config_bits(bits_select, config) -> object:
 
 
 
-    if "true" in multi_message.lower():
-        multi_message = True
-    else:
-        multi_message = False
+    multi_message = ("true" in multi_message.lower())
         
     split_param_start = float(config['split_param_start'])
     
-    if ", " in arousal_messages:
-        arousal_messages = arousal_messages.split(", ")
-    elif "," in arousal_messages:
+    if "," in arousal_messages:
         arousal_messages = arousal_messages.split(",")
+        for msg in arousal_messages:
+            arousal_messages[msg] = msg.strip()
     else:
         arousal_messages = [arousal_messages]
     
@@ -247,9 +229,6 @@ async def arousalloop(dispatcher):
         
     #Make a new object with specific configs.
     vr_bits = config_bits(vr_bits, loaded_configs[vr_bits.bit])
-
-    #HERE FOR DEBUG ONLY
-    #vr_bits.is_close = True
     
     while True: #Program Async Main
         if vr_bits.active is True and vr_bits.changed is False:
@@ -272,7 +251,7 @@ async def arousalloop(dispatcher):
             
             if vr_bits.arousal > 1.5 and vr_bits.pre is False: #enable dripping after a certain threshold
                 vr_bits.pre = True
-            if vr_bits.arousal > 1.5 and vr_bits.throb is False: #enable dripping after a certain threshold
+            if vr_bits.arousal > 1.5 and vr_bits.throb is False: #enable throbbing after a certain threshold
                 vr_bits.throb = True
             if vr_bits.arousal > 0.8 and vr_bits.sps is False:
                 vr_bits.sps = True
