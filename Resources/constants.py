@@ -5,7 +5,7 @@ class callback(Enum):
     VELOCITY = int(1)
     ACTIVATE = int(2)
     TOUCH = int(3)
-    BIT = int(4)
+    ID = int(4)
     IS_CLOSE = int(5)
     HOLE = int(6)
     RING = int(7)
@@ -13,11 +13,11 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.3.8-TESTING"
+VERSION = "2.4.0-TESTING"
 
 TEMPLATE = (
-    "#Do not remove this template. All user configs should be numbered 1 and higher\n" +
-    "0 {\n" +
+    "#Avatar file template" +
+    "avtr_abc12345-1234-5678-abcd-abcdef1234567"
     "name=template\n\n" +
     "#Sets the value all multipliers start at\n" +
     "base_arousal_increase=0.2\n" +
