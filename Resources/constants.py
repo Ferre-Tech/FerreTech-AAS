@@ -13,11 +13,11 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.4.0-TESTING"
+VERSION = "2.4.1-TESTING"
 
 TEMPLATE = (
-    "#Avatar file template" +
-    "avtr_abc12345-1234-5678-abcd-abcdef1234567"
+    "#Avatar file template\n\n" +
+    "avtr_abc12345-1234-5678-abcd-abcdef1234567\n\n"
     "name=template\n\n" +
     "#Sets the value all multipliers start at\n" +
     "base_arousal_increase=0.2\n" +
