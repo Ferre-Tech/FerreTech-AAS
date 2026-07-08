@@ -7,7 +7,7 @@ header = (
     "serverPort = 9010\n" +
     "vrcIp = 127.0.0.1\n" +
     "vrcPort = 9000\n\n" +
-    f"JadeTech Arousal System {VERSION}\n\n"
+    f"FerreTech Arousal System {VERSION}\n\n"
     )
 debug = DEBUG
 version = VERSION
@@ -17,9 +17,9 @@ def check_for_config() -> bool:
     filepath = ""
     
     if os.name == 'nt':
-        filepath = os.path.join(Path.home(), 'AppData\\Roaming\\JadeTech')
+        filepath = os.path.join(Path.home(), 'AppData\Roaming\FerreTech')
     else:
-        filepath = os.path.join(Path.home(), 'Documents/JadeTech')
+        filepath = os.path.join(Path.home(), 'Documents/FerreTech')
         
     if debug is True:
         print(filepath)
@@ -123,7 +123,7 @@ def check_for_config() -> bool:
                 serverPort +
                 vrcIp +
                 f"{vrcPort}\n" +
-                f"JadeTech Arousal System {VERSION}\n\n"
+                f"FerreTech Arousal System {VERSION}\n\n"
             )
             
             #Now that the file is read and the user config is saved, try to rewrite the file if the file is writable
@@ -164,7 +164,7 @@ def check_for_config() -> bool:
     #vrcIp = 127.0.0.1
     #vrcPort = 9001
     #
-    #JadeTech Arousal System {version}\n\n
+    #FerreTech Arousal System {version}\n\n
     ##Do not remove this template. All user configs should be numbered 1 and higher\n
     #0 {\n
     #name=template\n\n

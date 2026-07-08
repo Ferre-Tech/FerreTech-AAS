@@ -14,6 +14,10 @@ from Resources.constants import DEBUG, callback, VERSION
 from Resources.loadfile import load_configs, check_for_config, list_configs
 from Resources.ui import redraw_ui
 
+#from pythonoscquery.shared.osc_address_space import OSCAddressSpace
+#from pythonoscquery.shared.osc_path_node import OSCPathNode
+#from pythonoscquery.shared.osc_access import OSCAccess
+
 
 #OSC Server and client details
 serverIp = "127.0.0.1"
@@ -292,9 +296,9 @@ async def main():
         global vrcPort
         
         if os.name == 'nt':
-            filepath = os.path.join(Path.home(), 'AppData\\Roaming\\JadeTech\\ASConfig.cfg')
+            filepath = os.path.join(Path.home(), 'AppData\\Roaming\\FerreTech\\ASConfig.cfg')
         else:
-            filepath = os.path.join(Path.home(), 'Documents/JadeTech/ASConfig.cfg')
+            filepath = os.path.join(Path.home(), 'Documents/FerreTech/ASConfig.cfg')
         with open(filepath) as f:
             for line in f:
                 x = line.rstrip("\n")
