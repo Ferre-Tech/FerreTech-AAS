@@ -46,9 +46,9 @@ class AS_Config:
                 message_preamble: str = "/avatar/parameters/", 
                 vrcIp: str = "127.0.0.1", 
                 vrcPort: int = 9000,
-                base_arousal_increase: float = 0.2,
+                base_arousal_increase: float = 0.05,
                 arousal_decay: float = 0.001,
-                arousal_timeout: float = 45,
+                arousal_timeout: list = [45,90],
                 ):
         self.name = name
         self.id = ""
@@ -60,10 +60,10 @@ class AS_Config:
         self.arousal = 0.0
         self.arousal_increase: float = float(base_arousal_increase)
         self.arousal_decay: float = float(arousal_decay)
-        self.timeout:float = float(arousal_timeout)
-        self.pre = False
-        self.sps = False
-        self.throb = False
+        self.timeout:list = [arousal_timeout]
+        self.pre: list = [1.5, False]
+        self.sps: list = [0.8, False]
+        self.throb: list = [1.5, False]
         self.last_touch = float("-inf")
         self.__map_list = [] #Holds OSC Message mappings for use with the server unmap function
         self.dispatcher = dispatcher
@@ -109,9 +109,9 @@ class AS_Config:
     #Reset arousal and all toggles
     def reset_callback(self, address: str, x: bool) -> None:
         self.arousal = 0.0
-        self.pre = False
-        self.throb = False
-        self.sps = False
+        self.pre[1] = False
+        self.throb[1] = False
+        self.sps[1] = False
         self.send_message(self.get_message("pre"), False)
         self.send_message(self.get_message("sps"), False)
         self.send_message(self.get_message("throb"), False)
@@ -182,38 +182,41 @@ class AS_Config:
         if self.arousal > 0.005:
             self.arousal -= self.arousal_decay
         
-        if self.arousal < 1.5 and self.pre is True:
-            self.pre = False
+        if self.arousal < 1.5 and self.pre[1] is True:
+            self.pre[1] = False
             self.send_message(self.get_message("pre"), False)
-        if self.arousal < 1.5 and self.throb is True:
-            self.throb = False
+        if self.arousal < 1.5 and self.throb[1] is True:
+            self.throb[1] = False
             self.send_message(self.get_message("throb"), False)
-        if self.arousal < 0.8 and self.sps is True:
-            self.sps = False
+        if self.arousal < 0.8 and self.sps[1] is True:
+            self.sps[1] = False
             self.send_message(self.get_message("sps"), False)
 
         if self.arousal < 0.005 and self.arousal >= 0.0: #reset everything
-            self.pre = False
-            self.sps = False
+            self.pre[1] = False
+            self.throb[1] = False
+            self.sps[1] = False
             self.arousal = 0.0
 
     def send_message(self, msg: str, val: any):
         self._client.send_message(msg, val)
-        #print(f"Message sent: {msg}, {val}")
 
     def send_arousal(self):
+        arsl = self.arousal
+        if arsl > 1.0: #To prevent value overrun on some menus, just set the value to 1 and use it for some messages
+            arsl = 1.0
         if self.__split_arousal_val is True:
             if DEBUG is True:
                 print(f"{self.get_message(self.arousal_messages[0])}, {self.arousal}")
             if self.arousal < self.__start_val:
-                self.send_message(self.get_message(self.__arousal_messages[0]), self.arousal)
+                self.send_message(self.get_message(self.__arousal_messages[0]), arsl)
             elif self.arousal > self.__start_val:
-                self.send_message(self.get_message(self.__arousal_messages[0]), self.arousal)
+                self.send_message(self.get_message(self.__arousal_messages[0]), arsl)
                 sec_val = float(self.arousal) - float(self.__start_val)
                 self.send_message(self.get_message(self.__arousal_messages[1]), sec_val)
         else:
             for message in self.__arousal_messages:
-                self.send_message(self.get_message(message), self.arousal)
+                self.send_message(self.get_message(message), arsl)
 
 #Object to hold each Touch zone, plug, or socket defined in the config file
 class AS_Object(AS_Config):

@@ -11,8 +11,8 @@ TEMPLATE = (
     "base_arousal_increase=0.2\n" +
     "#How quickly arousal goes down after not being touched\n" +
     "arousal_decay=0.001\n" +
-    "#How long since the last touch before arousal decay begins\n" +
-    "touch_timeout=45\n\n" +
+    "#How long since the last touch before arousal decay begins. First value is below 1.0, second is after 1.0\n" +
+    "touch_timeout=[45,90]\n\n" +
     "#Supports up to 2 arousal parameters separated by commas. start value of the first is always 0 - 1.0, start value of the second will be configurable in future\n" +
     "split_arousal=False\n" +
     "split_param_start=1.0\n" +
@@ -20,10 +20,13 @@ TEMPLATE = (
     "#VRC parameter name, sometimes needs to be the VRCFury active parameter name (Available from OSCGB in avatar debug)\n" +
     "Parameters:\n" + 
     "pre=example_param\n" +
+    "pre_start=1.5\n" +
     "sps=example_param\n" +
+    "sps_start=0.8\n" +
     "erect=example_param\n" +
     "aroused=example_param\n" +
-    "throb=example_param\n\n" +
+    "throb=example_param\n" +
+    "throb_start=1.5\n\n" +
     "#If you want different increases of arousal per plug/socket/touch zone then add its name below with its multiplier (0.0-1.0)\n" +
     "#The name below must match the name used in the OSC listener message\n\n" +
     "{1}\n\n" +

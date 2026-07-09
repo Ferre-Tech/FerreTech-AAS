@@ -96,6 +96,9 @@ def config_bits(bits_select, config) -> object:
     new_bits.add_parameter("aroused", config['aroused'])
     new_bits.add_parameter("erect", config['erect'])
     new_bits.add_parameter("throb", config['throb'])
+    new_bits.pre[0] = config['pre_start']
+    new_bits.throb[0] = config['throb_start']
+    new_bits.sps[0] = config['sps_start']
 
     i = 0 #int for plug id association to enable per-zone toggling
     
@@ -239,21 +242,24 @@ async def arousalloop(dispatcher):
                 if zone_obj.get_pos_list_len() > 0:
                     zone_obj.decay_pos_list()
             
-            if vr_bits.arousal > 1.5 and vr_bits.pre is False: #enable dripping after a certain threshold
-                vr_bits.pre = True
+            if vr_bits.arousal > 1.5 and vr_bits.pre[1] is False: #enable dripping after a certain threshold
+                vr_bits.pre[1] = True
                 vr_bits.send_message(vr_bits.get_message("pre"), True)
             if vr_bits.arousal > 1.5 and vr_bits.throb is False: #enable throbbing after a certain threshold
-                vr_bits.throb = True
+                vr_bits.throb[1] = True
                 vr_bits.send_message(vr_bits.get_message("throb"), True)
             if vr_bits.arousal > 0.8 and vr_bits.sps is False:
-                vr_bits.sps = True
+                vr_bits.sps[1] = True
                 vr_bits.send_message(vr_bits.get_message("sps"), True)
-            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout)) and time.time() > start_time + 0.1:
+            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:
                 vr_bits.flagging()
                 start_time = time.time()
-            elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout) * 2) and time.time() > start_time + 0.1:
+            elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[1]) * 2) and time.time() > start_time + 0.1:
                 vr_bits.flagging()
                 start_time = time.time()
+
+            if vr_bits.arousal > 2.0:
+                vr_bits.arousal = 2.0
                 
             vr_bits.send_arousal()
         
