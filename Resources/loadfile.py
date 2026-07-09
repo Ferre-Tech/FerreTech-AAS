@@ -53,7 +53,7 @@ def check_for_config() -> bool:
 
     os.chdir(filepath)
 
-    #Check and see if the config exists; If so, open it and return the file to main
+    #Check and see if the config exists; If so, open it and return to main
     if os.access(filepath + "/ASConfig.cfg",os.W_OK):
         try:
             config = open("ASConfig.cfg")
@@ -104,7 +104,7 @@ def check_for_config() -> bool:
                 try:
                     with open("ASConfig.cfg", "w") as config:
 
-                        filedata = header + template
+                        filedata = header
 
                         for line in user_config:
                             filedata += line
@@ -115,7 +115,13 @@ def check_for_config() -> bool:
                     print (e)
                     print ("Unable to write new config")
                     return False
-
+                try:
+                    with open(os.path.join("Avatars","#TEMPLATE#"), "w") as f:
+                        f.write(TEMPLATE)
+                    f.close()
+                except OSError as e:
+                    print(e)
+                    return False
         return True
     #if it doesn't exist, try to make a new one with the template data
     print(f"Config file doesn't exist. Attempting to create file at {filepath}" + "/ASConfig.cfg")
