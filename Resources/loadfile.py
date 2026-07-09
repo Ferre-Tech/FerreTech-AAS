@@ -130,12 +130,19 @@ def check_for_config() -> bool:
     if debug is True:
         print(template)
     try:
-        template = header + TEMPLATE
-        f.write(template)
+        config = header
+        f.write(config)
     except OSError as e:
         print(e)
         print("Unable to write template data")
         f.close()
+        return False
+    f.close()
+    try:
+        with open(os.join("Avatars","#TEMPLATE#"), "w") as f:
+            f.write(TEMPLATE)
+    except OSError as e:
+        print(e)
         return False
     f.close()
     print(f"New config file created at {filepath}" + "/ASConfig.cfg")
@@ -176,6 +183,8 @@ def list_configs(filepath) -> None:
 
     valid_configs = []
     for config in avail_configs:
+        if "#TEMPLATE#" in config: #Ignore the template file
+            continue
         with open(os.path.join(filepath, config)) as f:
             if "avtr_" in f.readline():
                 valid_configs.append(config)
