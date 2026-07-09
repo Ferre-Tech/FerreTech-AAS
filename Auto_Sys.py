@@ -203,10 +203,11 @@ async def arousalloop(dispatcher):
     first_load()
     
     #Hold in loop until bit value assigned
+    
     while vr_bits.id == "":
         await asyncio.sleep(1.0)
-
-    config_tool(vr_bits.id)
+        if config_tool(vr_bits.id) is False:
+            vr_bits.id = ""\
 
     #Make a new object with specific configs.
     av_config = None
@@ -226,10 +227,10 @@ async def arousalloop(dispatcher):
                 zone_obj = vr_bits.zone_dict[zone]
                 if zone_obj.enabled is False: #If disabled by user, skip!
                     continue
-                if zone_obj.is_touched() and (zone_obj.type != "Ring" or zone_obj.type != "Touchzone"):
+                if zone_obj.is_touched() and (zone_obj.type != "Ring" or zone_obj.type != "Touchzone") and time.time() > start_time + 0.1:
                     vr_bits.arousal += change_arousal(zone_obj, vr_bits.arousal_increase)
                     vr_bits.last_touch = time.time()
-                elif zone_obj.type == "Ring" or zone_obj.type == "Touchzone":
+                elif zone_obj.type == "Ring" or zone_obj.type == "Touchzone" and time.time() > start_time + 0.1:
                     change = change_arousal(zone_obj, vr_bits.arousal_increase)
                     if change > 0.0005:
                         vr_bits.arousal += change
