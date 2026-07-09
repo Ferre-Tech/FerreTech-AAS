@@ -162,7 +162,11 @@ def config_tool(avatar_id = "") -> None:
     filepath = ""
     if avatar == None:
         filepath, osc_config = get_vrc_osc(vrc_osc)
-        av_config = load_osc_config(filepath, osc_config, avatar_id)
+        try:
+            av_config = load_osc_config(filepath, osc_config, avatar_id)
+        except OSError as e:
+            print(e)
+            return False
         try:
             if parse_config_file(av_config, avatar_id, data_folder):
                 print(f"Config file written to {data_folder}.\n")
