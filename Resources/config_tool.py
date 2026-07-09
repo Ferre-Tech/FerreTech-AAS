@@ -129,7 +129,8 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
                                 sps_type = callback.VELOCITY.value
                             case 'Zone':
                                 sps_type = callback.TOUCH.value
-                    msg_dict[msg[-2]] = "/".join(msg[:-1]) + f", {sps_type}"
+                    if sps_type != -1: #Prevents empty final line being written, potentially from the version tag from OSCGB
+                        msg_dict[msg[-2]] = "/".join(msg[:-1]) + f", {sps_type}"
             
             name_str = ""
             msg_str = ""
