@@ -202,7 +202,6 @@ class AS_Config:
         #print(f"Message sent: {msg}, {val}")
 
     def send_arousal(self):
-        print(self.arousal)
         if self.__split_arousal_val is True:
             if DEBUG is True:
                 print(f"{self.get_message(self.arousal_messages[0])}, {self.arousal}")

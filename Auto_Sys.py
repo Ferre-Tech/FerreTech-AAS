@@ -207,7 +207,7 @@ async def arousalloop(dispatcher):
     while vr_bits.id == "":
         await asyncio.sleep(1.0)
         if config_tool(vr_bits.id) is False:
-            vr_bits.id = ""\
+            vr_bits.id = ""
 
     #Make a new object with specific configs.
     av_config = None
@@ -333,6 +333,11 @@ async def main():
 
 try:
     asyncio.run(main())
+except OSError as e:
+    print(e)
+    print("Exiting due to error. Press enter to continue...")
+    input()
+    raise SystemExit(1)
 except KeyboardInterrupt:
     print("Exiting...")
     raise SystemExit(0)

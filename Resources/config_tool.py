@@ -92,6 +92,8 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
     if filepath_is_valid(filepath) is False: #Fail if unable to make directory
         print("Failed to write file")
         return False
+    if "avtr_" not in id:
+        raise OSError("Invalid avatar ID")
     
     parameters = avatar_config["parameters"]
     osc_msg = {}
@@ -164,8 +166,11 @@ def config_tool(avatar_id = "") -> None:
         try:
             if parse_config_file(av_config, avatar_id, data_folder):
                 print(f"Config file written to {data_folder}.\n")
-        except ValueError as e:
+        except OSError as e:
+            print(e)
             return False
+        except ValueError as e:
             if DEBUG is True:
                 print(e)
+            return False
     return True
