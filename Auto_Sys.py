@@ -242,13 +242,13 @@ async def arousalloop(dispatcher):
                 if zone_obj.get_pos_list_len() > 0:
                     zone_obj.decay_pos_list()
             
-            if vr_bits.arousal > 1.5 and vr_bits.pre[1] is False: #enable dripping after a certain threshold
+            if vr_bits.arousal > vr_bits.pre[0] and vr_bits.pre[1] is False: #enable dripping after a certain threshold
                 vr_bits.pre[1] = True
                 vr_bits.send_message(vr_bits.get_message("pre"), True)
-            if vr_bits.arousal > 1.5 and vr_bits.throb is False: #enable throbbing after a certain threshold
+            if vr_bits.arousal > vr_bits.throb[0] and vr_bits.throb is False: #enable throbbing after a certain threshold
                 vr_bits.throb[1] = True
                 vr_bits.send_message(vr_bits.get_message("throb"), True)
-            if vr_bits.arousal > 0.8 and vr_bits.sps is False:
+            if vr_bits.arousal > vr_bits.sps[0] and vr_bits.sps is False:
                 vr_bits.sps[1] = True
                 vr_bits.send_message(vr_bits.get_message("sps"), True)
             if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:
