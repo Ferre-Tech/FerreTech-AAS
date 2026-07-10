@@ -13,7 +13,12 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.4.11-RC"
+VERSION = "2.5.0-TESTING"
+
+UI_HEADER_TEMPLATE = (
+    "FerreTech Auto-Arousal system v{0}\n" +
+    "Listening on {1}:{2}\n"
+)
 
 TEMPLATE = (
     "#Avatar file template\n\n" +

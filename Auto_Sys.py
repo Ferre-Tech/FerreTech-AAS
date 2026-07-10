@@ -1,18 +1,14 @@
-import argparse
 import time
 import asyncio
-import math
 import os
 from pythonosc.dispatcher import Dispatcher
-from pythonosc import udp_client
 from pythonosc.osc_server import AsyncIOOSCUDPServer
-from typing import List, Any
 from pathlib import Path
 from Resources.as_config import AS_Config, AS_Object
-from Resources.constants import DEBUG, callback, VERSION
+from Resources.constants import DEBUG, callback, VERSION, UI_HEADER_TEMPLATE
 
 from Resources.loadfile import load_config, check_for_config, list_configs
-from Resources.ui import redraw_ui
+from Resources.ui import redraw_ui, print_to_ui, set_ui_header, clear_ui
 from Resources.config_tool import config_tool
 
 #from pythonoscquery.shared.osc_address_space import OSCAddressSpace
@@ -114,7 +110,7 @@ def config_bits(bits_select, config) -> object:
 
     i = 0 #int for plug id association to enable per-zone toggling
     
-    print("Toggle zones in the Toggles menu with the following IDs:")
+    print_to_ui("Toggle zones in the Toggles menu with the following IDs:")
     for item in config:
         if "/avatar/parameters/" in item:
             if DEBUG is True:
@@ -172,7 +168,7 @@ def config_bits(bits_select, config) -> object:
                     new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
                     new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
                     #new_touch.set_is_close()
-            print(f"Added {new_touch.name} as {new_touch.type} with toggle ID: {i}")
+            print_to_ui(f"Added {new_touch.name} as {new_touch.type} with toggle ID: {i}")
             new_touch.dispatch_add(f"/avatar/parameters/arousalsys/toggle/{i}", 99) #Add the toggle listener
 
             new_bits.zone_dict[name] = new_touch
@@ -200,7 +196,7 @@ def first_load() -> bool:
     #List the IDs for each specific config
     list_configs(os.path.join(filepath, "Avatars"))
     
-    print("\nAwaiting connection")
+    print_to_ui("\nAwaiting connection")
 
     return True
 
@@ -272,13 +268,13 @@ async def arousalloop(dispatcher):
 
             if vr_bits.arousal > 2.0:
                 vr_bits.arousal = 2.0
-                
+            
             vr_bits.send_arousal()
         
         #Watch for bit value change (avatar change generally)
         if vr_bits.changed is True:
             
-            redraw_ui(version, serverIp, serverPort)
+            clear_ui()
             list_configs(os.path.join(filepath, "Avatars"))
 
             while vr_bits.id == "":
@@ -344,7 +340,8 @@ async def main():
 
     server = AsyncIOOSCUDPServer((serverIp, serverPort), dispatcher, asyncio.get_event_loop())
     transport, protocol = await server.create_serve_endpoint()
-    redraw_ui(version, serverIp, serverPort)
+    set_ui_header(UI_HEADER_TEMPLATE.format(VERSION, serverIp, serverPort))
+    redraw_ui()
     
     await arousalloop(dispatcher) #start main loop
 
