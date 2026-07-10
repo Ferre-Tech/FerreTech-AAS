@@ -13,7 +13,7 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.4.9-TESTING"
+VERSION = "2.4.10-TESTING"
 
 TEMPLATE = (
     "#Avatar file template\n\n" +
@@ -23,8 +23,8 @@ TEMPLATE = (
     "base_arousal_increase=0.2\n" +
     "#How quickly arousal goes down after not being touched\n" +
     "arousal_decay=0.001\n" +
-    "#How long since the last touch before arousal decay begins. First value is below 1.0, second is after 1.0\n" +
-    "touch_timeout=[45,90]\n\n" +
+    "#How long since the last touch before arousal decay begins. First value is below 1.0, second is after 1.0. Separate values with a comma\n" +
+    "touch_timeout=45,90\n\n" +
     "#Supports up to 2 arousal parameters separated by commas. start value of the first is always 0 - 1.0, start value of the second will be configurable in future\n" +
     "split_arousal=False\n" +
     "split_param_start=1.0\n" +

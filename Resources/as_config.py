@@ -60,7 +60,7 @@ class AS_Config:
         self.arousal = 0.0
         self.arousal_increase: float = float(base_arousal_increase)
         self.arousal_decay: float = float(arousal_decay)
-        self.timeout:list = [arousal_timeout]
+        self.timeout:list = arousal_timeout
         self.pre: list = [1.5, False]
         self.sps: list = [0.8, False]
         self.throb: list = [1.5, False]

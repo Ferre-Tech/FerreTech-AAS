@@ -58,7 +58,10 @@ def config_bits(bits_select, config) -> object:
     except:
         base_gain = 0.2
     try:
-        timeout = config['touch_timeout']
+        tmp = config['touch_timeout']
+        timeout = tmp.split(",")
+        timeout[0] = timeout[0].strip()
+        timeout[1] = timeout[1].strip()
     except:
         timeout = 45
 
@@ -96,9 +99,18 @@ def config_bits(bits_select, config) -> object:
     new_bits.add_parameter("aroused", config['aroused'])
     new_bits.add_parameter("erect", config['erect'])
     new_bits.add_parameter("throb", config['throb'])
-    new_bits.pre[0] = config['pre_start']
-    new_bits.throb[0] = config['throb_start']
-    new_bits.sps[0] = config['sps_start']
+    try:
+        new_bits.pre[0] = config['pre_start']
+    except:
+        new_bits.pre[0] = 1.5
+    try:
+        new_bits.throb[0] = config['throb_start']
+    except:
+        new_bits.throb[0] = 1.5
+    try:
+        new_bits.sps[0] = config['sps_start']
+    except:
+        new_bits.sps[0] = 0.8
 
     i = 0 #int for plug id association to enable per-zone toggling
     
