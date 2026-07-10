@@ -74,7 +74,7 @@ def config_bits(bits_select, config) -> object:
         tmp = []
         for msg in arousal_messages.split(","):
             tmp.append(msg.strip())
-        arousal_messages = tmp
+        arousal_messages = float(tmp)
     else:
         arousal_messages = [arousal_messages]
     
@@ -100,15 +100,15 @@ def config_bits(bits_select, config) -> object:
     new_bits.add_parameter("erect", config['erect'])
     new_bits.add_parameter("throb", config['throb'])
     try:
-        new_bits.pre[0] = config['pre_start']
+        new_bits.pre[0] = float(config['pre_start'])
     except:
         new_bits.pre[0] = 1.5
     try:
-        new_bits.throb[0] = config['throb_start']
+        new_bits.throb[0] = float(config['throb_start'])
     except:
         new_bits.throb[0] = 1.5
     try:
-        new_bits.sps[0] = config['sps_start']
+        new_bits.sps[0] = float(config['sps_start'])
     except:
         new_bits.sps[0] = 0.8
 
@@ -257,10 +257,10 @@ async def arousalloop(dispatcher):
             if vr_bits.arousal > vr_bits.pre[0] and vr_bits.pre[1] is False: #enable dripping after a certain threshold
                 vr_bits.pre[1] = True
                 vr_bits.send_message(vr_bits.get_message("pre"), True)
-            if vr_bits.arousal > vr_bits.throb[0] and vr_bits.throb is False: #enable throbbing after a certain threshold
+            if vr_bits.arousal > vr_bits.throb[0] and vr_bits.throb[1] is False: #enable throbbing after a certain threshold
                 vr_bits.throb[1] = True
                 vr_bits.send_message(vr_bits.get_message("throb"), True)
-            if vr_bits.arousal > vr_bits.sps[0] and vr_bits.sps is False:
+            if vr_bits.arousal > vr_bits.sps[0] and vr_bits.sps[1] is False:
                 vr_bits.sps[1] = True
                 vr_bits.send_message(vr_bits.get_message("sps"), True)
             if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:

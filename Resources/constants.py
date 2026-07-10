@@ -13,7 +13,7 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 25
 
-VERSION = "2.4.10-TESTING"
+VERSION = "2.4.11-RC"
 
 TEMPLATE = (
     "#Avatar file template\n\n" +
