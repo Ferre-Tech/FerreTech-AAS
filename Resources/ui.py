@@ -28,11 +28,13 @@ def redraw_ui() -> None:
 
 def make_ui_meter() -> str:
     ui_bar = "~{"
+    tmp = current_arousal
     for i in range(21):
         if i == 0:
             continue
-        if current_arousal % 10 == 0 and current_arousal > 0:
+        if tmp % 10 == 0 and tmp > 0:
             ui_bar += "■"
+            tmp -= 10
         else:
             ui_bar += "-"
         if i == 10:
@@ -59,6 +61,6 @@ def print_to_ui(msg) -> None:
 
 def update_current_arousal(val: float) -> None:
     global current_arousal
-    current_arousal = int(round(val*100))
-    if current_arousal % 10 == 0 or current_arousal == 0:
+    current_arousal = int(val*100)
+    if current_arousal % 10 == 0:
         redraw_ui()

@@ -1,7 +1,7 @@
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import udp_client
 from enum import Enum
-from Resources.ui import line_check
+from Resources.ui import print_to_ui, redraw_ui
 from Resources.constants import callback, DEBUG
 
 
@@ -94,11 +94,10 @@ class AS_Config:
 
     #Enable and disable the system
     def activate_callback(self, address: str, activate: bool) -> None:
-        line_check(self.__ui_lines)
         if activate:
-            print("Arousal System activated")
+            print_to_ui("Arousal System activated")
         if activate is not True:
-            print("Arousal System deactivated")
+            print_to_ui("Arousal System deactivated")
         self.active = activate
     
     #Bit config select callback
@@ -124,7 +123,7 @@ class AS_Config:
         if callback_id == 0:
             raise Exception("No valid callback supplied")
         #line_check(self.__ui_lines)
-        print(f"Adding OSC listener for {oscmsg}")
+        print_to_ui(f"Adding OSC listener for {oscmsg}")
         self.__map_list.append(oscmsg)
         self.dispatcher.map(oscmsg, self.get_handler(callback_id))
     
@@ -197,6 +196,7 @@ class AS_Config:
             self.throb[1] = False
             self.sps[1] = False
             self.arousal = 0.0
+            redraw_ui()
 
     def send_message(self, msg: str, val: any):
         self._client.send_message(msg, val)

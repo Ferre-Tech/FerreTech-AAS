@@ -8,7 +8,7 @@ from Resources.as_config import AS_Config, AS_Object
 from Resources.constants import DEBUG, callback, VERSION, UI_HEADER_TEMPLATE
 
 from Resources.loadfile import load_config, check_for_config, list_configs
-from Resources.ui import redraw_ui, print_to_ui, set_ui_header, clear_ui
+from Resources.ui import redraw_ui, print_to_ui, set_ui_header, clear_ui, update_current_arousal
 from Resources.config_tool import config_tool
 
 #from pythonoscquery.shared.osc_address_space import OSCAddressSpace
@@ -70,7 +70,7 @@ def config_bits(bits_select, config) -> object:
         tmp = []
         for msg in arousal_messages.split(","):
             tmp.append(msg.strip())
-        arousal_messages = float(tmp)
+        arousal_messages =tmp 
     else:
         arousal_messages = [arousal_messages]
     
@@ -238,14 +238,14 @@ async def arousalloop(dispatcher):
                 zone_obj = vr_bits.zone_dict[zone]
                 if zone_obj.enabled is False: #If disabled by user, skip!
                     continue
-                if zone_obj.is_touched() and (zone_obj.type != "Ring" or zone_obj.type != "Touchzone") and time.time() > start_time + 0.1:
-                    vr_bits.arousal += change_arousal(zone_obj, vr_bits.arousal_increase)
-                    vr_bits.last_touch = time.time()
-                elif zone_obj.type == "Ring" or zone_obj.type == "Touchzone" and time.time() > start_time + 0.1:
+                if time.time() > start_time + 0.1:
                     change = change_arousal(zone_obj, vr_bits.arousal_increase)
-                    if change > 0.0005:
+                    if zone_obj.is_touched() and (zone_obj.type is not "Touchzone" or zone_obj.type is not "Ring"):
                         vr_bits.arousal += change
                         vr_bits.last_touch = time.time()
+                    elif change > 0.0005 and (zone_obj.type is "Touchzone" or zone_obj.type is "Ring"):
+                            vr_bits.arousal += change
+                            vr_bits.last_touch = time.time()
                 #If not touched, remove stale values (to better track the change since last check)
                 if zone_obj.get_pos_list_len() > 0:
                     zone_obj.decay_pos_list()
@@ -269,6 +269,8 @@ async def arousalloop(dispatcher):
             if vr_bits.arousal > 2.0:
                 vr_bits.arousal = 2.0
             
+            if round(vr_bits.arousal, 2) % 0.1 == 0 and vr_bits.arousal > 0.0:
+                update_current_arousal(round(vr_bits.arousal, 2))
             vr_bits.send_arousal()
         
         #Watch for bit value change (avatar change generally)
