@@ -235,6 +235,37 @@ class AS_Object(AS_Config):
 
     def __repr__(self):
         return f"{self.name}: {self.type=}, {self.dispatcher=}, {self.__map_list=}, {self.__is_close=}"
+    
+    #Filters for all messages from OSCGB relevant to this specific SPS component. Further filtering and handling will be done from object functions per response
+    #   Testing over split callbacks for both performance and ease of use/cleanup
+    def filter_callback(self, address: str, *args: any) -> None:
+        if len(args) < 1 or args[0] is not type(float) or args[0] is not type(bool):
+            return
+        
+        msg_filter = f"{self.__message_preamble}/{self.name}/"
+        if self.__message_preamble not in address:
+            return
+        
+        if "is_close" in address and args[0] is type(bool):
+            self.is_close = args[0]
+
+        if ("TouchSelf" in address or 
+            "TouchOthers" in address or
+            "PenOthers" in address or
+            "PenSelf" in address or
+            "PenOthersNewRoot" in address or
+            "PenOthersNewTip" in address or
+            "PenSelfNewRoot" in address or
+            "PenSelfNewTip" in address or
+            "FrotOthers" in address
+            ) and (
+            self.is_close is True    
+            ):
+            current_pos = round(args[0], 3)
+            if current_pos is not self.last_pos:
+                self.__pos_list.append(args[0])
+            if len(self.__pos_list) > 25:
+                self.__pos_list.pop(0)
 
     def is_close_callback(self, address: str, is_close: bool) -> None:
         self.__is_close = is_close
@@ -265,6 +296,8 @@ class AS_Object(AS_Config):
                 return self.is_close_callback
             case callback.HOLE:
                 return self.velocity_callback
+            case 15:
+                return self.filter_callback
             case 99:
                 return self.toggle_callback
             case _:
@@ -292,6 +325,11 @@ class AS_Object(AS_Config):
     def clear_mapping(self):
         #Since no nice methods exist for handling specific dynamic OSC handler unmapping, do them all and only throw errors if DEBUG is enabled
         for mapping in self.__map_list:
+            try:
+                self.dispatcher.unmap(mapping, self.get_handler(15))
+            except ValueError:
+                if DEBUG == True:
+                    print(f"No mapping found for {mapping}, {self.get_handler(callback.VELOCITY)}")
             try:
                 self.dispatcher.unmap(mapping, self.get_handler(callback.VELOCITY))
             except ValueError:

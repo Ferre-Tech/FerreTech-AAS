@@ -116,10 +116,11 @@ def config_bits(bits_select, config) -> object:
             if DEBUG is True:
                 print(f"{item} : {config[item]}")
 
-            msg_list = item.split("/")
-            name = msg_list[-1]
+            msg_list:list = item.split("/")
+            name:str = msg_list[-1]
 
-            new_touch = None
+            new_touch:object = None
+            dispatcher:Dispatcher = new_bits.dispatcher
 
             if name not in new_bits.zone_dict:
                 new_bits.zone_dict[name] = new_touch
@@ -129,44 +130,21 @@ def config_bits(bits_select, config) -> object:
             msg_end = len(item) - len(name)
             preamble = item[0:msg_end]
 
-            new_touch = AS_Object(name, new_bits.dispatcher, None, preamble, i)
+            new_touch = AS_Object(name, dispatcher, None, preamble, i)
             match config[item]:
                 case callback.VELOCITY.value: #Default plug setup
                     new_touch.type = "Plug"
-                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}", 15)
                 case callback.TOUCH.value: #For now, touch zones are always on
                     new_touch.type = "Touchzone"
-                    new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}", 15)
                     #new_touch.set_is_close()
                 case callback.HOLE.value: #Default socket setup
                     new_touch.type = "Hole"
-                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
+                    new_touch.dispatch_add(f"{item}", 15)
                 case callback.RING.value: #For now, rings are always on
                     new_touch.type = "Ring"
-                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
+                    new_touch.dispatch_add(f"{item}", 15)
                     #new_touch.set_is_close()
             print_to_ui(f"Added {new_touch.name} as {new_touch.type} with toggle ID: {i}")
             new_touch.dispatch_add(f"/avatar/parameters/arousalsys/toggle/{i}", 99) #Add the toggle listener
