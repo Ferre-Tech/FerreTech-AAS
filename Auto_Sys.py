@@ -116,10 +116,11 @@ def config_bits(bits_select, config) -> object:
             if DEBUG is True:
                 print(f"{item} : {config[item]}")
 
-            msg_list = item.split("/")
-            name = msg_list[-1]
+            msg_list:list = item.split("/")
+            name:str = msg_list[-1]
 
-            new_touch = None
+            new_touch:object = None
+            dispatcher:Dispatcher = new_bits.dispatcher
 
             if name not in new_bits.zone_dict:
                 new_bits.zone_dict[name] = new_touch
@@ -129,45 +130,18 @@ def config_bits(bits_select, config) -> object:
             msg_end = len(item) - len(name)
             preamble = item[0:msg_end]
 
-            new_touch = AS_Object(name, new_bits.dispatcher, None, preamble, i)
+            new_touch = AS_Object(name, dispatcher, preamble, i)
             match config[item]:
                 case callback.VELOCITY.value: #Default plug setup
                     new_touch.type = "Plug"
-                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
                 case callback.TOUCH.value: #For now, touch zones are always on
                     new_touch.type = "Touchzone"
-                    new_touch.dispatch_add(f"{item}/Others", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/Self", callback.VELOCITY)
-                    #new_touch.set_is_close()
                 case callback.HOLE.value: #Default socket setup
                     new_touch.type = "Hole"
-                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
                 case callback.RING.value: #For now, rings are always on
                     new_touch.type = "Ring"
-                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
-                    #new_touch.set_is_close()
+
+            new_touch.dispatch_add(f"{item}/*", 15)
             print_to_ui(f"Added {new_touch.name} as {new_touch.type} with toggle ID: {i}")
             new_touch.dispatch_add(f"/avatar/parameters/arousalsys/toggle/{i}", 99) #Add the toggle listener
 
@@ -240,16 +214,17 @@ async def arousalloop(dispatcher):
                     continue
                 if time.time() > start_time + 0.1:
                     change = change_arousal(zone_obj, vr_bits.arousal_increase)
-                    if zone_obj.is_touched() and (zone_obj.type is not "Touchzone" or zone_obj.type is not "Ring"):
+                    if zone_obj.is_touched() and (zone_obj.type != "Touchzone" or zone_obj.type != "Ring"):
                         vr_bits.arousal += change
                         vr_bits.last_touch = time.time()
-                    elif change > 0.0005 and (zone_obj.type is "Touchzone" or zone_obj.type is "Ring"):
+                    elif change > 0.0005 and (zone_obj.type == "Touchzone" or zone_obj.type == "Ring"):
                             vr_bits.arousal += change
                             vr_bits.last_touch = time.time()
                 #If not touched, remove stale values (to better track the change since last check)
                 if zone_obj.get_pos_list_len() > 0:
                     zone_obj.decay_pos_list()
             
+            #latch states
             if vr_bits.arousal > vr_bits.pre[0] and vr_bits.pre[1] is False: #enable dripping after a certain threshold
                 vr_bits.pre[1] = True
                 vr_bits.send_message(vr_bits.get_message("pre"), True)
@@ -259,6 +234,8 @@ async def arousalloop(dispatcher):
             if vr_bits.arousal > vr_bits.sps[0] and vr_bits.sps[1] is False:
                 vr_bits.sps[1] = True
                 vr_bits.send_message(vr_bits.get_message("sps"), True)
+
+            #timeouts
             if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:
                 vr_bits.flagging()
                 start_time = time.time()
@@ -269,7 +246,7 @@ async def arousalloop(dispatcher):
             if vr_bits.arousal > 2.0:
                 vr_bits.arousal = 2.0
             
-            if round(vr_bits.arousal, 2) % 0.1 == 0 and vr_bits.arousal > 0.0:
+            if round(vr_bits.arousal, 2) % 0.01 <= 0.01 and vr_bits.arousal > 0.0:
                 update_current_arousal(round(vr_bits.arousal, 2))
             vr_bits.send_arousal()
         

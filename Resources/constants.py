@@ -11,9 +11,9 @@ class callback(Enum):
     RING = int(7)
 
 DEBUG = False
-LINE_LIMIT = 25
+LINE_LIMIT = 15
 
-VERSION = "2.5.1-TESTING"
+VERSION = "2.6.0-TESTING"
 
 UI_HEADER_TEMPLATE = (
     "FerreTech Auto-Arousal system v{0}\n" +

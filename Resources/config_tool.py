@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 from Resources.constants import callback, DEBUG
 from Resources.loadfile import check_for_config
@@ -89,6 +90,23 @@ def filepath_is_valid(filepath):
         print("Filepath is not a directory")
         return False
 
+#Update user assigned parameters, as updating objects and order may change prefix. Don't change any further assignments
+def update_user_config (params_list: list, user_config: list):
+    new_conf = []
+    for line in user_config:
+        updated = False
+        for name in params_list:
+            if name == None:
+                continue
+            if re.split('_', name)[1] in line:
+                new_conf.append(re.sub("VF[\\d0-9]*", re.split("_\\w*", name)[0], line))
+                updated = True
+                break
+        if updated is False:
+            new_conf.append(line)
+    return new_conf
+
+
 #Parse the OSC config and spit out a named, formatted config in the appdata folder (separate files for now)
 def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
 
@@ -97,12 +115,17 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
         return False
     if "avtr_" not in id:
         raise OSError("Invalid avatar ID")
-    
+
     parameters = avatar_config["parameters"]
     osc_msg = {}
+    osc_msg["namelist"] = []
     av_name = avatar_config["name"]
+
     for param in parameters: #Search for OSCGB specific nomenclature in order to pull just the values we need
-        if "OGB" in param["name"] or "VFH" in param["name"] and "version" not in param["name"]:
+        msg = re.search("VF\\d+[0-9]_\\w+", param["name"])
+        if msg != None:
+            osc_msg["namelist"].append(msg.string)
+        if ("OGB" in param["name"] or "VFH" in param["name"]) and "version" not in param["name"]:
             if param["name"] not in osc_msg:
                 osc_msg[param["name"]] = param["input"]["address"]
 
@@ -111,18 +134,48 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
 
     print(f"Attempting to export config to {os.path.join(filepath, av_name)}")
 
+    updated_conf = ""
+    try: #Try to open and update any changed prefix on parameters if a config has data
+        with open(os.path.join(filepath, av_name), "r") as f:
+            conf_old = []
+
+            for line in f:
+                conf_old.append(line)
+
+            #if config exists and is not empty, try to re-write the parameter names for user set variables and write to file
+            if conf_old != []:
+                conf = update_user_config(osc_msg["namelist"], conf_old)
+                if "avtr_" in conf[0]:
+                    for line in conf:
+                        updated_conf += line
+            
+            f.close()
+    except OSError as e:
+        print(e)
+
     try:
         with open(os.path.join(filepath, av_name), "w") as f: #Presently will simply overwrite the existing file if the ID changes but the name does not
+            
+            #if config was updated, write it and return
+            if updated_conf != "":
+                f.write(updated_conf)
+                f.close()
+                return True
+
             msg_dict = {}
 
             #Take dict of messages and prune it to only the root (SPS item) we need 
             for name in osc_msg:
+                if name == "namelist":
+                    continue
                 msg = osc_msg[name]
                 msg = msg.split("/")
                 msg_name = msg[-2]
+
                 if msg_name not in msg_dict and msg_name != "Version": #If parameter not yet in the dict, add it
                     msg = osc_msg[name]
                     msg = msg.split("/")
+                    name = msg[-2]
                     sps_type = -1
                     for item in msg: #Set SPS type
                         match item:
@@ -133,8 +186,7 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
                             case 'Zone':
                                 sps_type = callback.TOUCH.value
                     if sps_type != -1: #Prevents empty final line being written, potentially from the version tag from OSCGB
-                        msg_dict[msg[-2]] = "/".join(msg[:-1]) + f", {sps_type}"
-            
+                        msg_dict[name] = "/".join(msg[:-1]) + f", {sps_type}"
             name_str = ""
             msg_str = ""
             for name in msg_dict:
@@ -143,13 +195,18 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
 
             f.write(f"{id}\n\n") #Add VRC Avatar ID to reference
             f.write(TEMPLATE.format(av_name, name_str, msg_str)) #TEMPLATE takes (avatar name, list of SPS objects, list of OSC Addresses)
-    except:
+            f.close()
+    except OSError as e:
         print("Failed to write file")
+        print(e)
         return False
     return True
 
 #Will call during runtime to build avatars if enabled (per avatar toggle) or when ran separately
 def config_tool(avatar_id = "") -> None:
+    if avatar_id == "":
+        return False
+    
     data_folder = Path.home()
     vrc_osc = Path.home()
 
@@ -164,21 +221,22 @@ def config_tool(avatar_id = "") -> None:
     check_for_config() #Makes template file, checks that the folder structure exists
     avatar = check_for_avatar_config(data_folder, avatar_id) #Look for the loaded avatar in existing configs
     filepath = ""
-    if avatar == None:
-        filepath, osc_config = get_vrc_osc(vrc_osc)
-        try:
-            av_config = load_osc_config(filepath, osc_config, avatar_id)
-        except OSError as e:
+    
+    filepath, osc_config = get_vrc_osc(vrc_osc)
+    try:
+        av_config = load_osc_config(filepath, osc_config, avatar_id)
+    except OSError as e:
+        print(e)
+        return False
+    try:
+        if parse_config_file(av_config, avatar_id, data_folder):
+            print(f"Config file written to {data_folder}.\n")
+    except OSError as e:
+        print(e)
+        return False
+    except ValueError as e:
+        if DEBUG is True:
             print(e)
-            return False
-        try:
-            if parse_config_file(av_config, avatar_id, data_folder):
-                print(f"Config file written to {data_folder}.\n")
-        except OSError as e:
-            print(e)
-            return False
-        except ValueError as e:
-            if DEBUG is True:
-                print(e)
-            return False
+        return False
+
     return True
