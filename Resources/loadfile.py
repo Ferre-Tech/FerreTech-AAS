@@ -155,6 +155,8 @@ def check_for_config() -> bool:
     return True
 
 def load_config(config) -> dict:
+    if config == None:
+        return None
     av_config = {}
     with open(config, "r") as conf:
         for line in conf:
