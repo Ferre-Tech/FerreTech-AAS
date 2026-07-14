@@ -249,7 +249,7 @@ class AS_Object():
                 self.__pos_list.append(current_pos)
             if len(self.__pos_list) > 25:
                 self.__pos_list.pop(0)
-
+        print(end="")
         return
 
     #Allows enabling and disabling specific SPS items via some extra setup in the avatar menu

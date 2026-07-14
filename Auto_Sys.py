@@ -61,8 +61,6 @@ def config_bits(bits_select, config) -> object:
     except:
         timeout = 45
 
-
-
     multi_message = ("true" in multi_message.lower())
         
     split_param_start = float(config['split_param_start'])
