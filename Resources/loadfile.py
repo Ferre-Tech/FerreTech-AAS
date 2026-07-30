@@ -13,11 +13,12 @@ debug = DEBUG
 version = VERSION
 template = TEMPLATE
 
+#Only checks for config containing template data, server IPs, and server ports. later to be unecessary with OSCQuery
 def check_for_config() -> bool:
     filepath = ""
     
     if os.name == 'nt':
-        filepath = os.path.join(Path.home(), 'AppData\Roaming\FerreTech')
+        filepath = os.path.join(Path.home(), 'AppData\\Roaming\\FerreTech')
     else:
         filepath = os.path.join(Path.home(), 'Documents/FerreTech')
         
@@ -25,47 +26,34 @@ def check_for_config() -> bool:
         print(filepath)
 
     #Check if filepath is valid
-    exists = 1
     try:
         os.chdir(filepath)
     except FileNotFoundError:
-        print("Folder does not exist")
-        exists = 0
+        os.mkdir(filepath)
     except PermissionError:
         print("No permission to access this folder")
-        exists = -1
         return False
     except NotADirectoryError:
         print("Filepath is not a directory")
-        exists = -1
         return False
-
-    if debug is True:
-        print(f"Does the folder exist? {exists}")
-    #If the folder doesn't exist, try to make it
-    if exists == 0:
-        try:
-            Path(filepath).mkdir() 
-        except:
-            print("Unable to make new directory")
-            return False
-        print(f"Created new directory at {filepath}")
-        try:
-            os.chdir(filepath)
-        except FileNotFoundError:
-            print("Folder does not exist")
-            return False
-        except PermissionError:
-            print("No permission to write to this folder")
-            return False
-        except NotADirectoryError:
-            print("Filepath is not a directory")
-            return False
+    
+    try:
+        os.chdir(os.path.join(filepath, "Avatars"))
+    except FileNotFoundError:
+        os.mkdir(os.path.join(filepath, "Avatars"))
+    except PermissionError:
+        print("No permission to access this folder")
+        return False
+    except NotADirectoryError:
+        print("Filepath is not a directory")
+        return False
     
     if debug is True:
         print("Current working directory: " + os.getcwd())
 
-    #Check and see if the config exists; If so, open it and return the file to main
+    os.chdir(filepath)
+
+    #Check and see if the config exists; If so, open it and return to main
     if os.access(filepath + "/ASConfig.cfg",os.W_OK):
         try:
             config = open("ASConfig.cfg")
@@ -89,32 +77,17 @@ def check_for_config() -> bool:
 
             user_config = []
             config = open("ASConfig.cfg")
-            try:
-                template_start = -1
-                config_end = -1
-                i = 0
-
-                for line in config:
-                    if config_end != -1:
-                        user_config.append(line)
-                    elif "serverIp" in line:
-                        serverIp = line
-                    elif "serverPort" in line:
-                        serverPort = line
-                    elif "vrcIp" in line:
-                        vrcIp = line
-                    elif "vrcPort" in line:
-                        vrcPort = line
-                    elif "0 {" in line:
-                        template_start = i
-                    elif template_start != -1 and "}" in line:
-                        config_end = i
-                    i += 1
+            for line in config:
+                if "serverIp" in line:
+                    serverIp = line
+                elif "serverPort" in line:
+                    serverPort = line
+                elif "vrcIp" in line:
+                    vrcIp = line
+                elif "vrcPort" in line:
+                    vrcPort = line
                 
-                config.close()
-            except OSError as e:
-                print(e)
-                return False
+            config.close()
             
             global header
             global template
@@ -131,7 +104,7 @@ def check_for_config() -> bool:
                 try:
                     with open("ASConfig.cfg", "w") as config:
 
-                        filedata = header + template
+                        filedata = header
 
                         for line in user_config:
                             filedata += line
@@ -142,11 +115,14 @@ def check_for_config() -> bool:
                     print (e)
                     print ("Unable to write new config")
                     return False
-                
-                #Once the new file is written, open it again as read only and pass it back to main
-                config = open("ASConfig.cfg", "r")
-
-        return config
+                try:
+                    with open(os.path.join("Avatars","#TEMPLATE#"), "w") as f:
+                        f.write(TEMPLATE)
+                    f.close()
+                except OSError as e:
+                    print(e)
+                    return False
+        return True
     #if it doesn't exist, try to make a new one with the template data
     print(f"Config file doesn't exist. Attempting to create file at {filepath}" + "/ASConfig.cfg")
     try:
@@ -156,68 +132,36 @@ def check_for_config() -> bool:
         print(f"Unable to create file 'ASConfig.cfg' at {filepath}. Does this file already exist?")
         return False
     print("Created new config file")
-    
-    
-    #Template data written to new file:
-    #serverIp = 127.0.0.1
-    #serverPort = 9010
-    #vrcIp = 127.0.0.1
-    #vrcPort = 9001
-    #
-    #FerreTech Arousal System {version}\n\n
-    ##Do not remove this template. All user configs should be numbered 1 and higher\n
-    #0 {\n
-    #name=template\n\n
-    #
-    ##Supports up to 2 arousal messages separated by commas. start value of the first is always 0 - 1.0, start value of the second will be configurable in future\n
-    #arousal_messages=example1, example2\n\n
-    #
-    ##VRC parameter name, sometimes needs to be the VRCFury active parameter name (Available from OSCGB in avatar debug)\n
-    #Parameters:\n
-    #pre=example_parameter\n
-    #sps=example_parameter\n
-    #aroused=example_parameter\n
-    #erect=example_parameter\n
-    #throb=example_parameter\n\n
-    #
-    ##OSC listener messages - One per line, separate the ID from the message with a comma\n
-    ##These can be retrieved from the OSCGB debug menu. These are the touch zones or penetrators you want this system to watch\n
-    ##OSC Message types: 1 - Velocity, 3 - Touchzones\n
-    #/avatar/parameters/VFH/Zone/Touch/Balls_Touched, 3\n
-    #/avatar/parameters/OGB/Pen/Knot, 1\n\n
-    #}
-    #
 
     if debug is True:
         print(template)
     try:
-        template = header + TEMPLATE
-        f.write(template)
+        config = header
+        f.write(config)
     except OSError as e:
         print(e)
         print("Unable to write template data")
         f.close()
         return False
     f.close()
+    try:
+        with open(os.join("Avatars","#TEMPLATE#"), "w") as f:
+            f.write(TEMPLATE)
+    except OSError as e:
+        print(e)
+        return False
+    f.close()
     print(f"New config file created at {filepath}" + "/ASConfig.cfg")
     return True
-    
-def load_configs(config) -> list:
-    configs = []
-    i = 0
-    record = False
+
+def load_config(config) -> dict:
+    if config == None:
+        return None
     av_config = {}
-    for line in config:
-        data = line.rstrip("\n")
-        
-        if (f"{i} " + "{") in data:
-            record = True
-        elif "}" in data:
-            record = False
-            configs.append(av_config)
-            av_config = {}
-            i += 1
-        else:
+    with open(config, "r") as conf:
+        for line in conf:
+            data = line.rstrip("\n")
+            
             data = data.strip(" ")
             data = data.strip("\t")
             #Parameters
@@ -229,26 +173,34 @@ def load_configs(config) -> list:
                 else:
                     tags[1]=tags[1].strip()
                 av_config[tags[0]] = tags[1]
-            #OSC messages
+                #OSC messages
             if "/avatar/parameters/" in data:
                 msg = data.split(",")
                 msg[1] = int(msg[1].strip())
                 av_config[msg[0]] = msg[1]
-    #We're done with the opened config file. close it and return to main
-    config.close()
+    #We're done with the opened config file. close it and return the dict
     if debug is True:
-        print(configs)
-    return configs
+        print(config)
+    return av_config
 
 #Output a list of available configs
-#config 0 is used for spacing, all user configs should be 1 or higher
-def list_configs(configs) -> None:
-    i = 0
-    for item in configs:
-        if debug is True:
-            print(item)
-        if i == 0:
-            i += 1
+#Presently prints -all- configs that exist in the configs folder
+def list_configs(filepath) -> None:
+    i = 1
+    avail_configs = os.listdir(os.path.join(filepath))
+
+    valid_configs = []
+    for config in avail_configs:
+        if "#TEMPLATE#" in config: #Ignore the template file
             continue
-        print(f"{i}) {item['name']}")
+        with open(os.path.join(filepath, config)) as f:
+            if "avtr_" in f.readline():
+                valid_configs.append(config)
+    msg = ""
+    for item in valid_configs:
+        msg += f"{i}) {item}  "
+        if (i % 7) == 0:
+            print(msg)
+            msg = ""
         i += 1
+    print(msg + "\n")

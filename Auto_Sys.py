@@ -1,18 +1,15 @@
-import argparse
 import time
 import asyncio
-import math
 import os
 from pythonosc.dispatcher import Dispatcher
-from pythonosc import udp_client
 from pythonosc.osc_server import AsyncIOOSCUDPServer
-from typing import List, Any
 from pathlib import Path
 from Resources.as_config import AS_Config, AS_Object
-from Resources.constants import DEBUG, callback, VERSION
+from Resources.constants import DEBUG, callback, VERSION, UI_HEADER_TEMPLATE
 
-from Resources.loadfile import load_configs, check_for_config, list_configs
-from Resources.ui import redraw_ui
+from Resources.loadfile import load_config, check_for_config, list_configs
+from Resources.ui import redraw_ui, print_to_ui, set_ui_header, clear_ui, update_current_arousal
+from Resources.config_tool import config_tool
 
 #from pythonoscquery.shared.osc_address_space import OSCAddressSpace
 #from pythonoscquery.shared.osc_path_node import OSCPathNode
@@ -31,7 +28,7 @@ version = VERSION
 filepath = ""
 
 #Global functions
-        
+
 #Touch timeout for flagging function
 def timeout(last_touch: float, timeout: float) -> bool:
     end_time = last_touch + timeout
@@ -57,20 +54,21 @@ def config_bits(bits_select, config) -> object:
     except:
         base_gain = 0.2
     try:
-        timeout = config['touch_timeout']
+        tmp = config['touch_timeout']
+        timeout = tmp.split(",")
+        timeout[0] = timeout[0].strip()
+        timeout[1] = timeout[1].strip()
     except:
         timeout = 45
-
-
 
     multi_message = ("true" in multi_message.lower())
         
     split_param_start = float(config['split_param_start'])
-    
     if "," in arousal_messages:
-        arousal_messages = arousal_messages.split(",")
-        for msg in arousal_messages:
-            arousal_messages[msg] = msg.strip()
+        tmp = []
+        for msg in arousal_messages.split(","):
+            tmp.append(msg.strip())
+        arousal_messages =tmp 
     else:
         arousal_messages = [arousal_messages]
     
@@ -95,16 +93,32 @@ def config_bits(bits_select, config) -> object:
     new_bits.add_parameter("aroused", config['aroused'])
     new_bits.add_parameter("erect", config['erect'])
     new_bits.add_parameter("throb", config['throb'])
+    try:
+        new_bits.pre[0] = float(config['pre_start'])
+    except:
+        new_bits.pre[0] = 1.5
+    try:
+        new_bits.throb[0] = float(config['throb_start'])
+    except:
+        new_bits.throb[0] = 1.5
+    try:
+        new_bits.sps[0] = float(config['sps_start'])
+    except:
+        new_bits.sps[0] = 0.8
+
+    i = 0 #int for plug id association to enable per-zone toggling
     
+    print_to_ui("Toggle zones in the Toggles menu with the following IDs:")
     for item in config:
         if "/avatar/parameters/" in item:
             if DEBUG is True:
                 print(f"{item} : {config[item]}")
 
-            msg_list = item.split("/")
-            name = msg_list[-1]
+            msg_list:list = item.split("/")
+            name:str = msg_list[-1]
 
-            new_touch = None
+            new_touch:object = None
+            dispatcher:Dispatcher = new_bits.dispatcher
 
             if name not in new_bits.zone_dict:
                 new_bits.zone_dict[name] = new_touch
@@ -114,104 +128,51 @@ def config_bits(bits_select, config) -> object:
             msg_end = len(item) - len(name)
             preamble = item[0:msg_end]
 
-            new_touch = AS_Object(name, new_bits.dispatcher, None, preamble)
+            new_touch = AS_Object(name, dispatcher, preamble, i)
             match config[item]:
                 case callback.VELOCITY.value: #Default plug setup
                     new_touch.type = "Plug"
-                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
                 case callback.TOUCH.value: #For now, touch zones are always on
                     new_touch.type = "Touchzone"
-                    new_touch.dispatch_add(f"{item}/Others", callback.HOLE)
-                    new_touch.dispatch_add(f"{item}/Self", callback.HOLE)
-                    #new_touch.set_is_close()
                 case callback.HOLE.value: #Default socket setup
                     new_touch.type = "Hole"
-                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelf", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/FrotOthers", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/TouchSelfClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/TouchOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/FrotOthersClose", callback.IS_CLOSE)
-                    new_touch.dispatch_add(f"{item}/PenOthersClose", callback.IS_CLOSE)
                 case callback.RING.value: #For now, rings are always on
                     new_touch.type = "Ring"
-                    new_touch.dispatch_add(f"{item}/PenOthersNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenOthersNewTip", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewRoot", callback.VELOCITY)
-                    new_touch.dispatch_add(f"{item}/PenSelfNewTip", callback.VELOCITY)
-                    #new_touch.set_is_close()
 
-            #print(new_touch)
+            new_touch.dispatch_add(f"{item}/*", 15)
+            print_to_ui(f"Added {new_touch.name} as {new_touch.type} with toggle ID: {i}")
+            new_touch.dispatch_add(f"/avatar/parameters/arousalsys/toggle/{i}", 99) #Add the toggle listener
 
             new_bits.zone_dict[name] = new_touch
+            i += 1
 
-    new_bits.bit = bits_select.bit
+    new_bits.id = bits_select.id
     new_bits.active = bits_select.active
     new_bits.changed = False
 
+    for item in bits_select.zone_dict:
+        bits_select.zone_dict[item].clear_mapping()
+        bits_select.zone_dict[item] = None
     bits_select.clear_mapping()
-    bits_select = None
+    del bits_select
     return new_bits
 
-def first_load() -> dict:
-    #Check and see if the config exists. If not, make a new one. If it does, return the file and continue
-    result = False
-    try:
-        result = check_for_config()
-    except OSError as e:
-        print(e)
-    if result is False:
-        print("Unable to create or load config file. Exiting.")
-        input("Press enter to continue...")
-        return None
-    if result is True:
-        #If no previous config existed, a file was created, and the user needs to add their config to the file
-        print("Please add your config using the template provided and restart this program")
-        input("Press enter to continue...")
-        return None
-    #Try to load all configs from the file. There should always be a 0 config, making every further config 1 based
-    loaded_configs = {}
-    try:
-        loaded_configs = load_configs(result)
-    except OSError as e:
-        print(e)
-        print("Failed to get configs from file")
-        input("Press enter to continue...")
-        return None
-    num_configs = len(loaded_configs)
+def first_load() -> bool:
+    
+    #Check and see if any configs exist, if not, return false and wait for a new config to be created
+    avail_configs = os.listdir(os.path.join(filepath, "Avatars"))
 
-    if loaded_configs[0]["name"] == "template" and num_configs == 1:
-        print("No configs loaded. Please update the config file")
-        
-        input("Press enter to continue...")
-        return None
-    else:
-        num_configs = num_configs - 1
-        
-    print(f"Load complete. Loaded {num_configs} configs.")
+    if len(avail_configs) == 0:
+        return False
     
     #List the IDs for each specific config
-    list_configs(loaded_configs)
+    list_configs(os.path.join(filepath, "Avatars"))
     
-    print("\nAwaiting connection")
+    print_to_ui("\nAwaiting connection")
 
-    return loaded_configs
+    return True
 
 def change_arousal(zone: AS_Object, base_arousal_gain: float):
-    #if zone.is_touched():
     return float(base_arousal_gain) * float(zone.get_arousal_val())
 
 
@@ -222,17 +183,23 @@ async def arousalloop(dispatcher):
     vr_bits = AS_Config("None", dispatcher)
     start_time = time.time()
 
-    loaded_configs = first_load()
-
-    if loaded_configs is None:
-        return 1
+    first_load()
     
     #Hold in loop until bit value assigned
-    while vr_bits.bit == 0:
+    
+    while vr_bits.id == "":
         await asyncio.sleep(1.0)
-        
+        if config_tool(vr_bits.id) is False:
+            vr_bits.id = ""
+
     #Make a new object with specific configs.
-    vr_bits = config_bits(vr_bits, loaded_configs[vr_bits.bit])
+    av_config = None
+    for config in os.listdir(os.path.join(filepath,"Avatars")):
+        with open(config, "r") as file:
+            if str(vr_bits.id) in file.readline():
+                av_config = config
+                break
+    vr_bits = config_bits(vr_bits, load_config(av_config))
     
     while True: #Program Async Main
         if vr_bits.active is True and vr_bits.changed is False:
@@ -241,44 +208,69 @@ async def arousalloop(dispatcher):
             # Tested with time smoothing and the await seems to be good enough for smooth changes
             for zone in vr_bits.zone_dict:
                 zone_obj = vr_bits.zone_dict[zone]
-                if zone_obj.is_touched() and (zone_obj.type != "Ring" or zone_obj.type != "Touchzone"):
-                    vr_bits.arousal += change_arousal(zone_obj, vr_bits.arousal_increase)
-                    vr_bits.last_touch = time.time()
-                elif zone_obj.type == "Ring" or zone_obj.type == "Touchzone":
+                if zone_obj.enabled is False: #If disabled by user, skip!
+                    continue
+                if time.time() > start_time + 0.1:
                     change = change_arousal(zone_obj, vr_bits.arousal_increase)
-                    if change > 0.0005:
+                    if zone_obj.is_touched() and (zone_obj.type != "Touchzone" or zone_obj.type != "Ring"):
                         vr_bits.arousal += change
                         vr_bits.last_touch = time.time()
+                    elif change > 0.0005 and (zone_obj.type == "Touchzone" or zone_obj.type == "Ring"):
+                            vr_bits.arousal += change
+                            vr_bits.last_touch = time.time()
                 #If not touched, remove stale values (to better track the change since last check)
                 if zone_obj.get_pos_list_len() > 0:
                     zone_obj.decay_pos_list()
             
-            if vr_bits.arousal > 1.5 and vr_bits.pre is False: #enable dripping after a certain threshold
-                vr_bits.pre = True
-            if vr_bits.arousal > 1.5 and vr_bits.throb is False: #enable throbbing after a certain threshold
-                vr_bits.throb = True
-            if vr_bits.arousal > 0.8 and vr_bits.sps is False:
-                vr_bits.sps = True
-            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout)) and time.time() > start_time + 0.1:
+            #latch states
+            if vr_bits.arousal > vr_bits.pre[0] and vr_bits.pre[1] is False: #enable dripping after a certain threshold
+                vr_bits.pre[1] = True
+                vr_bits.send_message(vr_bits.get_message("pre"), True)
+            if vr_bits.arousal > vr_bits.throb[0] and vr_bits.throb[1] is False: #enable throbbing after a certain threshold
+                vr_bits.throb[1] = True
+                vr_bits.send_message(vr_bits.get_message("throb"), True)
+            if vr_bits.arousal > vr_bits.sps[0] and vr_bits.sps[1] is False:
+                vr_bits.sps[1] = True
+                vr_bits.send_message(vr_bits.get_message("sps"), True)
+
+            #timeouts
+            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:
                 vr_bits.flagging()
                 start_time = time.time()
-            elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout) * 2) and time.time() > start_time + 0.1:
+            elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[1]) * 2) and time.time() > start_time + 0.1:
                 vr_bits.flagging()
                 start_time = time.time()
-                
+
+            if vr_bits.arousal > 2.0:
+                vr_bits.arousal = 2.0
+            
+            if round(vr_bits.arousal, 2) % 0.01 <= 0.01 and vr_bits.arousal > 0.0:
+                update_current_arousal(round(vr_bits.arousal, 2))
             vr_bits.send_arousal()
         
         #Watch for bit value change (avatar change generally)
         if vr_bits.changed is True:
             
-            redraw_ui(version, serverIp, serverPort)
-            list_configs(loaded_configs)
+            clear_ui()
+            list_configs(os.path.join(filepath, "Avatars"))
 
-            while vr_bits.bit == 0:
+            while vr_bits.id == "":
                 await asyncio.sleep(1)
             
-            #Make a new class with updated messaging
-            vr_bits = config_bits(vr_bits, loaded_configs[vr_bits.bit])
+            #Make a new class with updated messaging if the file exists and has OSCGB messages
+            if config_tool(vr_bits.id):
+                av_config = None
+                for config in os.listdir(os.path.join(filepath,"Avatars")):
+                    with open(config, "r") as file:
+                        if vr_bits.id in file.readline():
+                            av_config = config
+                            file.close
+                            break
+                vr_bits = config_bits(vr_bits, load_config(av_config))
+            else: #No file exists or file would have no messages. Ignoring and looping until next change
+                vr_bits.changed = False
+                vr_bits = AS_Config("None", dispatcher)
+
             
         await asyncio.sleep(0.05) #Sleep to allow OSC to listen for updates
         
@@ -287,19 +279,22 @@ async def arousalloop(dispatcher):
 async def main(): 
     dispatcher = Dispatcher()
 
+    global filepath
+    if os.name == 'nt':
+        filepath = os.path.join(Path.home(), 'AppData\\Roaming\\FerreTech')
+    else:
+        filepath = os.path.join(Path.home(), 'Documents/FerreTech')
+
     #Whether the config file exists or not, look for the file to try and read the server config
     try:
-        filepath = ""
         global serverIp
         global serverPort
         global vrcIp
         global vrcPort
         
-        if os.name == 'nt':
-            filepath = os.path.join(Path.home(), 'AppData\\Roaming\\FerreTech\\ASConfig.cfg')
-        else:
-            filepath = os.path.join(Path.home(), 'Documents/FerreTech/ASConfig.cfg')
-        with open(filepath) as f:
+        check_for_config()
+
+        with open(os.path.join(filepath, 'ASConfig.cfg')) as f:
             for line in f:
                 x = line.rstrip("\n")
                 if "serverIp" in line:
@@ -322,13 +317,19 @@ async def main():
 
     server = AsyncIOOSCUDPServer((serverIp, serverPort), dispatcher, asyncio.get_event_loop())
     transport, protocol = await server.create_serve_endpoint()
-    redraw_ui(version, serverIp, serverPort)
+    set_ui_header(UI_HEADER_TEMPLATE.format(VERSION, serverIp, serverPort))
+    redraw_ui()
     
     await arousalloop(dispatcher) #start main loop
 
 
 try:
     asyncio.run(main())
+except OSError as e:
+    print(e)
+    print("Exiting due to error. Press enter to continue...")
+    input()
+    raise SystemExit(1)
 except KeyboardInterrupt:
     print("Exiting...")
     raise SystemExit(0)
