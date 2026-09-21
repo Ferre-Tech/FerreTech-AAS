@@ -13,7 +13,11 @@ class callback(Enum):
 DEBUG = False
 LINE_LIMIT = 15
 
+<<<<<<< HEAD
 VERSION = "2.6.1"
+=======
+VERSION = "2.6.2-TESTING"
+>>>>>>> f9fb71c (v2.6.2-Testing)
 
 UI_HEADER_TEMPLATE = (
     "FerreTech Auto-Arousal system v{0}\n" +

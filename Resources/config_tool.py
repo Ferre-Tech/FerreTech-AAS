@@ -193,9 +193,14 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
                 name_str += f"{name} = 1.0\n"
                 msg_str += f"{msg_dict[name]}\n"
 
-            f.write(f"{id}\n\n") #Add VRC Avatar ID to reference
-            f.write(TEMPLATE.format(av_name, name_str, msg_str)) #TEMPLATE takes (avatar name, list of SPS objects, list of OSC Addresses)
-            f.close()
+            if len(msg_dict) < 1:
+                f.close()
+                os.remove(os.path.join(filepath, av_name))
+                return False
+            else:
+                f.write(f"{id}\n\n") #Add VRC Avatar ID to reference
+                f.write(TEMPLATE.format(av_name, name_str, msg_str)) #TEMPLATE takes (avatar name, list of SPS objects, list of OSC Addresses)
+                f.close()
     except OSError as e:
         print("Failed to write file")
         print(e)
