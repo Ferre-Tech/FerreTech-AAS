@@ -173,8 +173,7 @@ def first_load() -> bool:
     return True
 
 def change_arousal(zone: AS_Object, base_arousal_gain: float):
-    return float(base_arousal_gain) * float(zone.get_arousal_val())
-
+    return float(base_arousal_gain) * float(zone.get_arousal_val())\
 
 #Main async loop
 async def arousalloop(dispatcher):
@@ -186,19 +185,24 @@ async def arousalloop(dispatcher):
     first_load()
     
     #Hold in loop until bit value assigned
-    
+
     while vr_bits.id == "":
         await asyncio.sleep(1.0)
         if config_tool(vr_bits.id) is False:
             vr_bits.id = ""
 
     #Make a new object with specific configs.
-    av_config = None
+
+    av_config = None    
     for config in os.listdir(os.path.join(filepath,"Avatars")):
         with open(config, "r") as file:
             if str(vr_bits.id) in file.readline():
                 av_config = config
                 break
+
+    if av_config == None:
+        vr_bits.id = ""
+    
     vr_bits = config_bits(vr_bits, load_config(av_config))
     
     while True: #Program Async Main
@@ -266,10 +270,14 @@ async def arousalloop(dispatcher):
                             av_config = config
                             file.close
                             break
-                vr_bits = config_bits(vr_bits, load_config(av_config))
+                if av_config != None:
+                    vr_bits = config_bits(vr_bits, load_config(av_config))
+                else:
+                    vr_bits.id = ""
             else: #No file exists or file would have no messages. Ignoring and looping until next change
                 vr_bits.changed = False
                 vr_bits = AS_Config("None", dispatcher)
+                list_configs(os.path.join(filepath, "Avatars"))
 
             
         await asyncio.sleep(0.05) #Sleep to allow OSC to listen for updates
