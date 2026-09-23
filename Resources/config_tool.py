@@ -129,7 +129,7 @@ def parse_config_file(avatar_config:dict, id:str, filepath:str) -> bool:
             if param["name"] not in osc_msg:
                 osc_msg[param["name"]] = param["input"]["address"]
 
-    if len(osc_msg) == 0:
+    if len(osc_msg["namelist"]) < 1:
         raise ValueError("No OSCGB parameters found. Not making file")
 
     print(f"Attempting to export config to {os.path.join(filepath, av_name)}")
