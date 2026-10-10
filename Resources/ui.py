@@ -27,19 +27,20 @@ def redraw_ui() -> None:
         print(msg)
 
 def make_ui_meter() -> str:
-    ui_bar = "~{"
-    tmp = current_arousal
+
+    ui_bar = "\033[31m~{"
+    tmp = round(current_arousal, 0)
     for i in range(21):
         if i == 0:
             continue
-        if tmp % 10 == 0 and tmp > 0:
-            ui_bar += "■"
+        if tmp % 10.0 == 0 and tmp > 0:
+            ui_bar += "\033[37m" + "■" + "\033[31m"
             tmp -= 10
         else:
             ui_bar += "-"
         if i == 10:
             ui_bar += "|"
-    ui_bar += "}~"
+    ui_bar += "}~" + "\033[37m"
     return ui_bar
 
 def clear_ui() -> None:
@@ -61,6 +62,9 @@ def print_to_ui(msg) -> None:
 
 def update_current_arousal(val: float) -> None:
     global current_arousal
-    current_arousal = int(val*100)
-    if current_arousal % 10 == 0:
-        redraw_ui()
+    current_arousal = val * 100.0
+    if current_arousal % 10.0 == 0:
+        #updates the specific UI line within console for the arousal bar and returns the cursor back to the bottom of the list. Should update dynamically with message list length.
+        lines = len(messages) + 2
+        print("\r" + "\033[" + str(lines) + "A" + "\033[K" + "Arousal: " + make_ui_meter() + "\033[" + str(lines) + "B" + "\033[G", end="", flush=True)
+        #redraw_ui()

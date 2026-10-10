@@ -73,6 +73,7 @@ class AS_Config:
         self.changed = False
         self.is_close = False
         self.zone_dict: dict = {}
+        self.min_val = 0
 
     def __repr__(self):
         return f"Bits({self.name=}, {self.dispatcher=}, {self.__map_dict=}"
@@ -103,6 +104,11 @@ class AS_Config:
         self.send_message(self.get_message("sps"), False)
         self.send_message(self.get_message("throb"), False)
 
+    #Minimum arousal value
+    def set_min_val(self, address: str, x: float) -> None:
+        self.min_val = x
+        if (self.arousal < self.min_val):
+            self.arousal = self.min_val
 
     #Add dispatcher OSC message mapping
     def dispatch_add(self, oscmsg: str, callback_id: int):
@@ -119,6 +125,7 @@ class AS_Config:
         self.dispatch_add("/avatar/parameters/arousalsys/activate", callback.ACTIVATE)
         self.dispatch_add("/avatar/change", callback.ID)
         self.dispatch_add("/avatar/parameters/arousalsys/reset", 98)
+        self.dispatch_add("/avatar/parameters/arousalsys/min_val", 99)
         clear_ui()
 
     #OSC Helper functions
@@ -132,6 +139,8 @@ class AS_Config:
                 return self.id_select_callback
             case 98:
                 return self.reset_callback
+            case 99:
+                return self.set_min_val
             case _:
                 raise Exception("No valid handler ID supplied")
     
