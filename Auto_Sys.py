@@ -238,7 +238,7 @@ async def arousalloop(dispatcher):
                 vr_bits.send_message(vr_bits.get_message("sps"), True)
 
             #timeouts
-            if vr_bits.arousal > 0.001 and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:
+            if vr_bits.arousal > (vr_bits.min_val) and vr_bits.arousal < 1.0 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[0])) and time.time() > start_time + 0.1:
                 vr_bits.flagging()
                 start_time = time.time()
             elif vr_bits.arousal > 1 and timeout(float(vr_bits.last_touch), float(vr_bits.timeout[1]) * 2) and time.time() > start_time + 0.1:
